@@ -182,8 +182,8 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         return _tokenSetController.getTokenView(id);
     }
 
-    private static ArrayList deepCopy(ArrayList original) {
-        ArrayList result = (ArrayList) original.clone();
+    private static <T> ArrayList<T> deepCopy(ArrayList<T> original) {
+        ArrayList<T> result = (ArrayList<T>) original.clone();
         ListIterator listIter = result.listIterator();
 
         while (listIter.hasNext()) {
@@ -193,15 +193,17 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         return result;
     }
 
+
+
     // Steve Doubleday (Oct 2013):  protected to simplify unit testing
     protected void initializeMatrices() {
-        _placeViews = new ArrayList();
-        _transitionViews = new ArrayList();
-        _arcViews = new ArrayList();
-        _inhibitorViews = new ArrayList();
-        _labels = new ArrayList();
+        _placeViews = new ArrayList<PlaceView>();
+        _transitionViews = new ArrayList<TransitionView>();
+        _arcViews = new ArrayList<ArcView>();
+        _inhibitorViews = new ArrayList<InhibitorArcView>();
+        _labels = new ArrayList<AnnotationNote>();
         _stateGroups = new ArrayList();
-        _rateParameters = new ArrayList();
+        _rateParameters = new ArrayList<RateParameter>();
         _initialMarkingVector = null;
         _arcsMap = new Hashtable();
         _inhibitorsMap = new Hashtable();

@@ -38,6 +38,10 @@ public class PipeApplicationModel implements Serializable
     public TypeAction placeAction;
     public TypeAction transAction;
     public TypeAction timedtransAction;
+
+    public TypeAction logtransAction;
+    public TypeAction virtualarcAction;
+
     public TypeAction tokenAction;
     public TypeAction selectAction;
     public TypeAction rateAction;
@@ -111,8 +115,16 @@ public class PipeApplicationModel implements Serializable
         placeAction = new TypeAction("Place", Constants.PLACE, "Add a place", "P", true);
         transAction = new TypeAction("Immediate transition", Constants.IMMTRANS, "Add an immediate transition", "I", true);
         timedtransAction = new TypeAction("Timed transition", Constants.TIMEDTRANS, "Add a timed transition", "T", true);
+
+        //逻辑变迁
+        logtransAction = new TypeAction("Logical Transition", Constants.LOGTRANS, "Add a logical transition", "L", true);
+
         arcAction = new TypeAction("Arc", Constants.ARC, "Add an arc", "A", true);
         inhibarcAction = new TypeAction("Inhibitor Arc", Constants.INHIBARC, "Add an inhibitor arc", "H", true);
+
+        //只读弧
+        virtualarcAction=new TypeAction("Virtual Arc", Constants.VIRTUALARC, "Add a Virtual Arc", "V", true);
+
         annotationAction = new TypeAction("Annotation", Constants.ANNOTATION, "Add an annotation", "N", true);
         tokenAction = new TypeAction("Add token", Constants.ADDTOKEN, "Add a token", "ADD", true);
         deleteTokenAction = new TypeAction("Delete token", Constants.DELTOKEN, "Delete a token", "SUBTRACT", true);
@@ -201,6 +213,10 @@ public class PipeApplicationModel implements Serializable
         placeAction.setSelected(mode == Constants.PLACE);
         transAction.setSelected(mode == Constants.IMMTRANS);
         timedtransAction.setSelected(mode == Constants.TIMEDTRANS);
+
+        logtransAction.setSelected(mode == Constants.LOGTRANS);
+        virtualarcAction.setSelected(mode == Constants.VIRTUALARC);
+
         arcAction.setSelected(mode == Constants.ARC);
         inhibarcAction.setSelected(mode == Constants.INHIBARC);
         tokenAction.setSelected(mode == Constants.ADDTOKEN);
@@ -221,6 +237,10 @@ public class PipeApplicationModel implements Serializable
         annotationAction.setEnabled(status);
         transAction.setEnabled(status);
         timedtransAction.setEnabled(status);
+
+        logtransAction.setEnabled(status);
+        virtualarcAction.setEnabled(status);
+
         tokenAction.setEnabled(status);
         deleteAction.setEnabled(status);
         selectAction.setEnabled(status);

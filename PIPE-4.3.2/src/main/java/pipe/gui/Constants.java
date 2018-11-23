@@ -27,6 +27,10 @@ public interface Constants {
    public static final int PLACE        = 105;
    public static final int IMMTRANS     = 106;
    public static final int TIMEDTRANS   = 114;
+
+   public static final int LOGTRANS     = 301;
+   public static final int VIRTUALARC   = 302;
+
    public static final int ADDTOKEN     = 107;
    public static final int DELTOKEN     = 108;
    public static final int ANNOTATION   = 109;

@@ -43,6 +43,16 @@ public class TypeAction extends GuiAction
         {
             pipeApplicationView.timedtransAction.setSelected(false);
         }
+
+        if(this != pipeApplicationView.logtransAction)
+        {
+            pipeApplicationView.logtransAction.setSelected(false);
+        }
+
+        if(this != pipeApplicationView.virtualarcAction){
+            pipeApplicationView.virtualarcAction.setSelected(false);
+        }
+
         if(this != pipeApplicationView.arcAction)
         {
             pipeApplicationView.arcAction.setSelected(false);

@@ -305,8 +305,16 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
         addMenuItem(drawMenu, _applicationModel.placeAction);
         addMenuItem(drawMenu, _applicationModel.transAction);
         addMenuItem(drawMenu, _applicationModel.timedtransAction);
+
+        //增加LogicalTransition菜单条目
+        addMenuItem(drawMenu, _applicationModel.logtransAction);
+
         addMenuItem(drawMenu, _applicationModel.arcAction);
         addMenuItem(drawMenu, _applicationModel.inhibarcAction);
+
+        //增加特殊的只读弧
+        addMenuItem(drawMenu, _applicationModel.virtualarcAction);
+
         addMenuItem(drawMenu, _applicationModel.annotationAction);
         drawMenu.addSeparator();
         addMenuItem(drawMenu, _applicationModel.tokenAction);
@@ -405,6 +413,10 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
         addButton(drawingToolBar, _applicationModel.placeAction);// Add Draw Menu Buttons
         addButton(drawingToolBar, _applicationModel.transAction);
         addButton(drawingToolBar, _applicationModel.timedtransAction);
+
+        addButton(drawingToolBar, _applicationModel.logtransAction);
+        addButton(drawingToolBar, _applicationModel.virtualarcAction);
+
         addButton(drawingToolBar, _applicationModel.arcAction);
         addButton(drawingToolBar, _applicationModel.inhibarcAction);
         addButton(drawingToolBar, _applicationModel.annotationAction);

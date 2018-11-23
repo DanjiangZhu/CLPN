@@ -16,6 +16,8 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
+import net.sourceforge.jpowergraph.Edge;
+import net.sourceforge.jpowergraph.Node;
 import net.sourceforge.jpowergraph.defaults.DefaultGraph;
 import net.sourceforge.jpowergraph.defaults.DefaultNode;
 import net.sourceforge.jpowergraph.defaults.TextEdge;
@@ -24,13 +26,7 @@ import pipe.calculations.myTree;
 import pipe.exceptions.MarkingNotIntegerException;
 import pipe.exceptions.TimelessTrapException;
 import pipe.exceptions.TreeTooBigException;
-import pipe.extensions.jpowergraph.PIPEInitialState;
-import pipe.extensions.jpowergraph.PIPEInitialTangibleState;
-import pipe.extensions.jpowergraph.PIPEInitialVanishingState;
-import pipe.extensions.jpowergraph.PIPELoopWithTextEdge;
-import pipe.extensions.jpowergraph.PIPEState;
-import pipe.extensions.jpowergraph.PIPETangibleState;
-import pipe.extensions.jpowergraph.PIPEVanishingState;
+import pipe.extensions.jpowergraph.*;
 import pipe.gui.ApplicationSettings;
 import pipe.gui.widgets.ButtonBar;
 import pipe.gui.widgets.EscapableDialog;
@@ -42,6 +38,7 @@ import pipe.io.IncorrectFileFormatException;
 import pipe.io.ReachabilityGraphFileHeader;
 import pipe.io.StateRecord;
 import pipe.io.TransitionRecord;
+import pipe.models.Transition;
 import pipe.modules.interfaces.IModule;
 import pipe.utilities.Expander;
 import pipe.utilities.writers.PNMLWriter;
@@ -343,10 +340,11 @@ implements IModule
 					+ header.getNumTransitions() + " arcs. The graph is too big to be displayed properly.");
 		}
 
-		ArrayList nodes = new ArrayList();
-		ArrayList edges = new ArrayList();
-		ArrayList loopEdges = new ArrayList();
-		ArrayList loopEdgesTransitions = new ArrayList();
+		//由于编译时报错：某些输入文件使用了未经检查或不安全的操作。将ArrayList nodes之类改为ArrayList<E> node
+		ArrayList<Node> nodes = new ArrayList<Node>();
+		ArrayList<Edge> edges = new ArrayList<Edge>();
+		ArrayList<Node> loopEdges = new ArrayList<Node>();
+		ArrayList<String> loopEdgesTransitions = new ArrayList<String>();
 		String label;
 		String marking;
 
