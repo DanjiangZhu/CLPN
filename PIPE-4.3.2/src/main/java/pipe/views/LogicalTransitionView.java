@@ -51,6 +51,18 @@ public class LogicalTransitionView extends TransitionView {
         _formula = formula;
     }
 
-
+    //逻辑变迁的右键编辑菜单
+    public void showEditor()
+    {
+        EscapableDialog guiDialog = new EscapableDialog(ApplicationSettings.getApplicationView(), "PIPE2", true);
+        TransitionEditorPanel te = new TransitionEditorPanel(guiDialog.getRootPane(), this, ApplicationSettings.getApplicationView().getCurrentPetriNetView(), ApplicationSettings.getApplicationView().getCurrentTab());
+        guiDialog.add(te);
+        guiDialog.getRootPane().setDefaultButton(null);
+        guiDialog.setResizable(false);
+        guiDialog.pack();
+        guiDialog.setLocationRelativeTo(null);
+        guiDialog.setVisible(true);
+        guiDialog.dispose();
+    }
 
 }

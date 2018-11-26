@@ -6,6 +6,7 @@ import pipe.gui.Constants;
 import pipe.gui.ZoomController;
 import pipe.historyActions.HistoryItem;
 import pipe.models.PipeApplicationModel;
+import pipe.views.LogicalTransitionView;
 import pipe.views.TransitionView;
 
 import javax.swing.*;
@@ -61,7 +62,18 @@ public class TransitionHandler
       int index = 0;
       JPopupMenu popup = super.getPopup(e);
       
-      JMenuItem menuItem = new JMenuItem("Edit Transition");      
+      JMenuItem menuItem = new JMenuItem("Edit Transition");
+
+      //对逻辑变迁右键编辑菜单的响应处理
+      if(my instanceof LogicalTransitionView){
+         menuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+               ((LogicalTransitionView) my).showEditor();
+            }
+         });
+      }
+
+
       menuItem.addActionListener(new ActionListener(){
          public void actionPerformed(ActionEvent e) {
             ((TransitionView) my).showEditor();

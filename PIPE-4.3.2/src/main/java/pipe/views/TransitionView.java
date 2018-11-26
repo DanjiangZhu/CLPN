@@ -886,7 +886,7 @@ public class TransitionView extends ConnectableView implements Serializable
         ActionListener exiter = new ActionListener()
         {
 
-            @Override
+            //@Override
             public void actionPerformed(ActionEvent e)
             {
                 dialog.dispose();
