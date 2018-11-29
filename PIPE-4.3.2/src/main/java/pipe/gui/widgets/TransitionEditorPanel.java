@@ -94,7 +94,7 @@ private final TransitionView _transitionView;
             }
          }
       }      
-   }
+    }
    
    
    private void timedTransition(){
@@ -218,15 +218,15 @@ private final TransitionView _transitionView;
      * @return
      */
    private GridBagConstraints gridBagConstraintsGEN(int gridx, int gridy, int gridwidth, int anchor, int fill){
-       GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
-       gridBagConstraints.gridx = gridx;
-       gridBagConstraints.gridy = gridy;
-       gridBagConstraints.gridwidth = gridwidth;//默认值为1
-       gridBagConstraints.anchor = anchor;//默认值为CENTER
-       gridBagConstraints.fill = fill;//默认值为NONE，不调整组件大小
-       gridBagConstraints.insets = new java.awt.Insets(3, 3, 3, 3);
-       return gridBagConstraints;
-   }
+        GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = gridx;
+        gridBagConstraints.gridy = gridy;
+        gridBagConstraints.gridwidth = gridwidth;//默认值为1
+        gridBagConstraints.anchor = anchor;//默认值为CENTER
+        gridBagConstraints.fill = fill;//默认值为NONE，不调整组件大小
+        gridBagConstraints.insets = new java.awt.Insets(3, 3, 3, 3);
+        return gridBagConstraints;
+    }
 
 
    /** This method is called from within the constructor to
@@ -320,7 +320,7 @@ private final TransitionView _transitionView;
         transitionEditorPanel.add(nameTextField, nameTextFieldgridBagConstraints);
 
 
-        if(timed){
+        if(timed || (_transitionView instanceof LogicalTransitionView)){
             timingGridY = 1;
             timgingPanelGridX = timingGridX + 1;
             timgingPanelGridY = timingGridY;
@@ -333,56 +333,56 @@ private final TransitionView _transitionView;
             editorGridX = rateTextFieldGridX;
             editorGridY = 1;
 
+if(_transitionView instanceof LogicalTransitionView) {
+    //timingLabel布局
+    timingLabel.setText("Timing:");
 
-            //timingLabel布局
-            timingLabel.setText("Timing:");
+    GridBagConstraints timingLabelGBC = gridBagConstraintsGEN(timingGridX, timingGridY, 1, GridBagConstraints.NORTHEAST, GridBagConstraints.NONE);
 
-            GridBagConstraints timingLabelGBC = gridBagConstraintsGEN(timingGridX,timingGridY,1,GridBagConstraints.NORTHEAST,GridBagConstraints.NONE);
-
-            transitionEditorPanel.add(timingLabel, timingLabelGBC);
-
-
-            //timingPanel布局
-            timingPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(""));
-            timingPanel.setLayout(new java.awt.GridLayout(1, 0));
+    transitionEditorPanel.add(timingLabel, timingLabelGBC);
 
 
-            GridBagConstraints timingPanelGBC = gridBagConstraintsGEN(timgingPanelGridX,timgingPanelGridY,3,GridBagConstraints.NORTHWEST,GridBagConstraints.HORIZONTAL);
-
-            transitionEditorPanel.add(timingPanel, timingPanelGBC);
-
-
-            //TimedRadioButton布局
-            timingButtonGroup.add(timedRadioButton);
-            timedRadioButton.setText("Timed");
-            timedRadioButton.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-            timedRadioButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
-            timedRadioButton.setMaximumSize(new java.awt.Dimension(90, 15));
-            timedRadioButton.setMinimumSize(new java.awt.Dimension(90, 15));
-            timedRadioButton.setPreferredSize(new java.awt.Dimension(90, 15));
-            timedRadioButton.addActionListener(new java.awt.event.ActionListener() {
-                public void actionPerformed(java.awt.event.ActionEvent evt) {
-                    timedRadioButtonActionPerformed(evt);
-                }
-            });
-            timingPanel.add(timedRadioButton);
+    //timingPanel布局
+    timingPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(""));
+    timingPanel.setLayout(new java.awt.GridLayout(1, 0));
 
 
-            //immediateRadioButton布局
-            timingButtonGroup.add(immediateRadioButton);
-            immediateRadioButton.setText("Immediate");
-            immediateRadioButton.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-            immediateRadioButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
-            immediateRadioButton.setMaximumSize(new java.awt.Dimension(90, 15));
-            immediateRadioButton.setMinimumSize(new java.awt.Dimension(90, 15));
-            immediateRadioButton.setPreferredSize(new java.awt.Dimension(90, 15));
-            immediateRadioButton.addActionListener(new java.awt.event.ActionListener() {
-                public void actionPerformed(java.awt.event.ActionEvent evt) {
-                    immediateRadioButtonActionPerformed(evt);
-                }
-            });
-            timingPanel.add(immediateRadioButton);
+    GridBagConstraints timingPanelGBC = gridBagConstraintsGEN(timgingPanelGridX, timgingPanelGridY, 3, GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL);
 
+    transitionEditorPanel.add(timingPanel, timingPanelGBC);
+
+
+    //TimedRadioButton布局
+    timingButtonGroup.add(timedRadioButton);
+    timedRadioButton.setText("Timed");
+    timedRadioButton.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+    timedRadioButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
+    timedRadioButton.setMaximumSize(new java.awt.Dimension(90, 15));
+    timedRadioButton.setMinimumSize(new java.awt.Dimension(90, 15));
+    timedRadioButton.setPreferredSize(new java.awt.Dimension(90, 15));
+    timedRadioButton.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            timedRadioButtonActionPerformed(evt);
+        }
+    });
+    timingPanel.add(timedRadioButton);
+
+
+    //immediateRadioButton布局
+    timingButtonGroup.add(immediateRadioButton);
+    immediateRadioButton.setText("Immediate");
+    immediateRadioButton.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+    immediateRadioButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
+    immediateRadioButton.setMaximumSize(new java.awt.Dimension(90, 15));
+    immediateRadioButton.setMinimumSize(new java.awt.Dimension(90, 15));
+    immediateRadioButton.setPreferredSize(new java.awt.Dimension(90, 15));
+    immediateRadioButton.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            immediateRadioButtonActionPerformed(evt);
+        }
+    });
+    timingPanel.add(immediateRadioButton);
+}
 
             //rateLabel布局
             rateLabel.setText("Constant Rate:");
@@ -496,22 +496,38 @@ private final TransitionView _transitionView;
             serverPanel.add(infiniteServerRadioButton);
         }
 
+
+
+        int logicLabelGridX = 0, logicLabelGridY;
         int logicPanelGridX, logicPanelGridY = 0;
         if(_transitionView instanceof LogicalTransitionView){
-            logicPanelGridX = 1;
-            logicPanelGridY = 2;
+            logicLabelGridY = 1;
+            logicPanelGridX = 0;
+            logicPanelGridY = 1;
+
+            JLabel logicLabel = new JLabel("Control Logic:");//todo-Dj JLbael的布局
+            GridBagConstraints logicLabelGBC = gridBagConstraintsGEN(logicLabelGridX,(logicLabelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),1,GridBagConstraints.NORTHWEST,GridBagConstraints.NONE);
+            transitionEditorPanel.add(logicLabel,logicLabelGBC);
 
             //控制逻辑相关输入
             JPanel logicPanel = new JPanel();
             JTextArea logicExpressionText = new JTextArea();
-            JScrollPane logicScrollPane = new JScrollPane(logicExpressionText);
-            logicScrollPane.setBorder(javax.swing.BorderFactory.createTitledBorder("Logic input:"));//todo-DJ 需实现逻辑公式编辑功能
+            logicExpressionText.setLineWrap(true);//自动换行
+            logicExpressionText.setRows(3);//todo-Dj: 宽度还没改好
 
-            logicPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(""));
-            logicPanel.setLayout(new java.awt.GridLayout(1,0));
+            JScrollPane logicScrollPane = new JScrollPane(logicExpressionText);
+            logicScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+            logicScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+//            logicScrollPane.setBorder(javax.swing.BorderFactory.createTitledBorder("Logic input:"));//todo-DJ 需实现逻辑公式编辑功能
+
+//            logicPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(""));
+//            logicPanel.setLayout(new java.awt.GridLayout(1,0));
             logicPanel.add(logicScrollPane);
 
-            GridBagConstraints logicPanelGBC = gridBagConstraintsGEN(logicPanelGridX,(logicPanelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),3,GridBagConstraints.EAST,GridBagConstraints.NONE);
+            GridBagConstraints logicPanelGBC = gridBagConstraintsGEN(logicPanelGridX,(logicPanelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),3,GridBagConstraints.WEST,GridBagConstraints.BOTH);
+
+
+//            logicPanelGridY = 3;
 
             transitionEditorPanel.add(logicPanel,logicPanelGBC);
         }
@@ -600,7 +616,7 @@ private final TransitionView _transitionView;
         GridBagConstraints buttonPanelGBC = gridBagConstraintsGEN(buttonPanelGridX,buttonPanelGridY,1,GridBagConstraints.EAST,GridBagConstraints.NONE);
 
         buttonPanelGBC.insets = new java.awt.Insets(5, 0, 8, 3);
-        add(buttonPanel, buttonPanelGBC);
+         add(buttonPanel, buttonPanelGBC);
 
 
         //OKbutton布局

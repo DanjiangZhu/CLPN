@@ -3,6 +3,7 @@ package pipe.gui;
 import pipe.handlers.*;
 import pipe.historyActions.AddPetriNetObject;
 import pipe.historyActions.HistoryManager;
+import pipe.models.Connectable;
 import pipe.models.PipeApplicationModel;
 import pipe.views.*;
 import pipe.views.viewComponents.*;
@@ -85,6 +86,19 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
                     newPetriNetViewComponent.addMouseListener(placeHandler);
                     newPetriNetViewComponent.addMouseWheelListener(placeHandler);
                     newPetriNetViewComponent.addMouseMotionListener(placeHandler);
+                }
+                else if(newPetriNetViewComponent instanceof LogicalTransitionView)
+                {//注意：先判断是否为LogicalTransitionView，再判断是否是TransitionView,因为LogicalTV是TV的子类，不然先进去TV的处理过程了。
+                    LabelHandler labelHandler = new LabelHandler(nameLabel,(LogicalTransitionView) newPetriNetViewComponent);
+                    nameLabel.addMouseListener(labelHandler);
+                    nameLabel.addMouseMotionListener(labelHandler);
+                    nameLabel.addMouseWheelListener(labelHandler);
+
+                    TransitionHandler transitionHandler = new TransitionHandler(this, (TransitionView) newPetriNetViewComponent);
+                    newPetriNetViewComponent.addMouseListener(transitionHandler);
+                    newPetriNetViewComponent.addMouseMotionListener(transitionHandler);
+                    newPetriNetViewComponent.addMouseWheelListener(transitionHandler);
+                    newPetriNetViewComponent.addMouseListener(animationHandler);
                 }
                 else if(newPetriNetViewComponent instanceof TransitionView)
                 {
@@ -427,6 +441,17 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
         }
 
 
+        private ConnectableView newLogicalTransition(Point p)
+        {//因为手工新建LogicalTransition时，开始时没有逻辑公式，所以假设formula为空字符串;
+            //假设LogicalTransition在开始时默认是瞬时变迁，后期是否是时间变迁在右键编辑中设置。
+            p = adjustPoint(p, _petriNetTab.getZoom());
+
+            pn = new LogicalTransitionView((double) Grid.getModifiedX(p.x), (double) Grid.getModifiedY(p.y),"");
+            _model.addPetriNetObject(pn);
+            _petriNetTab.addNewPetriNetObject(pn);
+            return (ConnectableView) pn;
+        }
+
         private ConnectableView newTransition(Point p, boolean timed)
         {
             p = adjustPoint(p, _petriNetTab.getZoom());
@@ -437,7 +462,6 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
             _petriNetTab.addNewPetriNetObject(pn);
             return (ConnectableView) pn;
         }
-
 
         public void mousePressed(MouseEvent e)
         {
@@ -461,6 +485,26 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
                         break;
 
                     case Constants.IMMTRANS:
+                        boolean _timed = false;
+                        pto = newTransition(e.getPoint(), _timed);
+                        _petriNetTab.getHistoryManager().addNewEdit(new AddPetriNetObject(pto, _petriNetTab, _model));
+                        if(e.isControlDown())
+                        {
+                            applicationModel.enterFastMode(Constants.FAST_PLACE);
+                            pn.dispatchEvent(e);
+                        }
+                        break;
+
+                    case Constants.LOGTRANS://增加逻辑变迁的处理
+                        pto = newLogicalTransition(e.getPoint());
+                        _petriNetTab.getHistoryManager().addNewEdit(new AddPetriNetObject(pto, _petriNetTab, _model));
+                        if(e.isControlDown())
+                        {
+                            applicationModel.enterFastMode(Constants.FAST_PLACE);
+                            pn.dispatchEvent(e);
+                        }
+                        break;
+
                     case Constants.TIMEDTRANS:
                         boolean timed = (mode == Constants.TIMEDTRANS);
                         pto = newTransition(e.getPoint(), timed);
@@ -473,6 +517,7 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
                         break;
 
                     case Constants.ARC:
+                    case Constants.VIRTUALARC://增加只读弧的处理
                     case Constants.INHIBARC:
                         if(_createArcView != null)
                             addPoint(_createArcView, e);

@@ -557,7 +557,10 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
             addArc((InhibitorArcView) pn);
         } else if (pn instanceof PlaceView) {
             addPlace((PlaceView) pn);
-        } else if (pn instanceof TransitionView) {
+        } else if(pn instanceof LogicalTransitionView){
+            //todo-DJ: 调用addLogicalTransition(（LogicalTransitionView）pn)方法
+            addTransition((TransitionView) pn);
+        }else if (pn instanceof TransitionView) {
             addTransition((TransitionView) pn);
         } else if (pn instanceof AnnotationNote) {
             _labels.add((AnnotationNote) pn);

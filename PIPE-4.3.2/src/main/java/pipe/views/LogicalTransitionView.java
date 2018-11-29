@@ -31,6 +31,8 @@ import java.util.*;
 public class LogicalTransitionView extends TransitionView {
     private String _type="LogicalTransition";
 
+
+
     private String _formula;
 
     public String getFormula(){
@@ -64,5 +66,29 @@ public class LogicalTransitionView extends TransitionView {
         guiDialog.setVisible(true);
         guiDialog.dispose();
     }
+
+
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        if(_selected && !_ignoreSelection)
+        {
+            g2.setColor(Constants.SELECTION_FILL_COLOUR);
+        }
+        else
+        {
+            g2.setColor(Constants.ELEMENT_FILL_COLOUR);
+        }
+        g2.setPaint(Constants.ELEMENT_FILL_COLOUR);
+
+
+        g2.setFont(new Font("Arial",Font.BOLD,8));
+        g2.drawString("Ca", 22, 8);
+        setToolTipText("EFT = " + this.getRate() + "; formula = " + this.getFormula());
+    }
+
 
 }
