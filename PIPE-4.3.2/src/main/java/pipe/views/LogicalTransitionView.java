@@ -74,6 +74,10 @@ public class LogicalTransitionView extends TransitionView {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
+//        __path = new GeneralPath();
+//        __path.append(new Rectangle2D.Double((_componentWidth - TRANSITION_WIDTH) / 2, 0, TRANSITION_WIDTH/2 , TRANSITION_HEIGHT), false);
+
+
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         if(_selected && !_ignoreSelection)
@@ -84,7 +88,7 @@ public class LogicalTransitionView extends TransitionView {
         {
             g2.setColor(Constants.ELEMENT_FILL_COLOUR);
         }
-        g2.setPaint(Constants.ELEMENT_FILL_COLOUR);
+        g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
         g2.draw(__path);
         g2.fill(__path);
 
