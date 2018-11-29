@@ -245,6 +245,7 @@ public class TransitionView extends ConnectableView implements Serializable
                 }
             }
         }
+
     }
 
     public HistoryItem rotate(int angleInc)
