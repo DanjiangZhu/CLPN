@@ -182,85 +182,67 @@ public class TransitionView extends ConnectableView implements Serializable
             g2.setColor(Constants.ELEMENT_FILL_COLOUR);
         }
 
-        if(_timed)
-        {
-            if(_infiniteServer)
-            {
-                for(int i = 2; i >= 1; i--)
-                {
-                    g2.translate(2 * i, -2 * i);
-                    g2.fill(_path);
-                    Paint pen = g2.getPaint();
-                    if(_highlighted)
-                    {
-                        g2.setPaint(Constants.ENABLED_TRANSITION_COLOUR);
+        if(!(this instanceof LogicalTransitionView)) {
+            if (_timed) {
+                if (_infiniteServer) {
+                    for (int i = 2; i >= 1; i--) {
+                        g2.translate(2 * i, -2 * i);
+                        g2.fill(_path);
+                        Paint pen = g2.getPaint();
+                        if (_highlighted) {
+                            g2.setPaint(Constants.ENABLED_TRANSITION_COLOUR);
+                        } else if (_selected && !_ignoreSelection) {
+                            g2.setPaint(Constants.SELECTION_LINE_COLOUR);
+                        } else {
+                            g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
+                        }
+                        g2.draw(_path);
+                        g2.setPaint(pen);
+                        g2.translate(-2 * i, 2 * i);
                     }
-                    else if(_selected && !_ignoreSelection)
-                    {
-                        g2.setPaint(Constants.SELECTION_LINE_COLOUR);
-                    }
-                    else
-                    {
-                        g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
-                    }
-                    g2.draw(_path);
-                    g2.setPaint(pen);
-                    g2.translate(-2 * i, 2 * i);
                 }
+                g2.fill(_path);
             }
-            g2.fill(_path);
-        }
 
-        if(_highlighted)
-        {
-            g2.setPaint(Constants.ENABLED_TRANSITION_COLOUR);
-        }
-        else if(_selected && !_ignoreSelection)
-        {
-            g2.setPaint(Constants.SELECTION_LINE_COLOUR);
-        }
-        else
-        {
-            g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
-        }
-
-        g2.draw(_path);
-        if(!_timed)
-        {
-            if(_infiniteServer)
-            {
-                for(int i = 2; i >= 1; i--)
-                {
-                    g2.translate(2 * i, -2 * i);
-                    Paint pen = g2.getPaint();
-                    g2.setPaint(Constants.ELEMENT_FILL_COLOUR);
-                    g2.fill(_path);
-                    g2.setPaint(pen);
-                    g2.draw(_path);
-                    g2.translate(-2 * i, 2 * i);
-                }
+            if (_highlighted) {
+                g2.setPaint(Constants.ENABLED_TRANSITION_COLOUR);
+            } else if (_selected && !_ignoreSelection) {
+                g2.setPaint(Constants.SELECTION_LINE_COLOUR);
+            } else {
+                g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
             }
+
             g2.draw(_path);
-            g2.fill(_path);
-        }
-        try{
-        	Double.parseDouble(getRateExpr());
-        	if(this.isTimed())
-            {
-                setToolTipText("r = " + this.getRate());
+            if (!_timed) {
+                if (_infiniteServer) {
+                    for (int i = 2; i >= 1; i--) {
+                        g2.translate(2 * i, -2 * i);
+                        Paint pen = g2.getPaint();
+                        g2.setPaint(Constants.ELEMENT_FILL_COLOUR);
+                        g2.fill(_path);
+                        g2.setPaint(pen);
+                        g2.draw(_path);
+                        g2.translate(-2 * i, 2 * i);
+                    }
+                }
+                g2.draw(_path);
+                g2.fill(_path);
             }
-            else
-            {
-                setToolTipText("\u03c0 = " + this.getPriority() + "; w = " + this.getRate());
-            }
-        }catch(Exception e){
-        	if(this.isTimed())
-            {
-                setToolTipText("r = " + this.getRateExpr()+ " = "+ this.getRate());
-            }
-            else
-            {
-                setToolTipText("\u03c0 = " + this.getPriority() + "; w = " + this.getRateExpr()+ " = " + this.getRate());
+
+
+            try {
+                Double.parseDouble(getRateExpr());
+                if (this.isTimed()) {
+                    setToolTipText("r = " + this.getRate());
+                } else {
+                    setToolTipText("\u03c0 = " + this.getPriority() + "; w = " + this.getRate());
+                }
+            } catch (Exception e) {
+                if (this.isTimed()) {
+                    setToolTipText("r = " + this.getRateExpr() + " = " + this.getRate());
+                } else {
+                    setToolTipText("\u03c0 = " + this.getPriority() + "; w = " + this.getRateExpr() + " = " + this.getRate());
+                }
             }
         }
     }
@@ -886,7 +868,7 @@ public class TransitionView extends ConnectableView implements Serializable
         ActionListener exiter = new ActionListener()
         {
 
-            @Override
+            //@Override
             public void actionPerformed(ActionEvent e)
             {
                 dialog.dispose();
