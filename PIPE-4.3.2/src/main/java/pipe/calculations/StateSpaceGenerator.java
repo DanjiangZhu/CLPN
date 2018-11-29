@@ -13,11 +13,7 @@ import pipe.io.ReachabilityGraphFileHeader;
 import pipe.io.StateRecord;
 import pipe.io.TransitionRecord;
 import pipe.utilities.math.Matrix;
-import pipe.views.ArcView;
-import pipe.views.MarkingView;
-import pipe.views.PetriNetView;
-import pipe.views.PlaceView;
-import pipe.views.TransitionView;
+import pipe.views.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -61,7 +57,7 @@ public class StateSpaceGenerator {
 	private static final Stack transitions = new Stack();
 	private static boolean[] enabledTransitions;
 	private static int[][] _incidenceMatrixBeforeFire;
-
+    //生成可达图的方法
 	public static void generate(PetriNetView pnmlData, File reachGraph)
 			throws OutOfMemoryError, ImmediateAbortException, IOException, MarkingNotIntegerException {
 
@@ -745,7 +741,11 @@ public class StateSpaceGenerator {
 		
 		int CMinusValue; // Value from C- matrix
 		int CPlusValue; // Value from C+ matrix
-		//
+
+		int VFValue;//Value from VF matrix
+		ArrayList<TransitionView> arryTrans=pnmlData.getTransitionsArrayList();
+		TransitionView tr=arryTrans.get(transIndex);//本次fire的transition
+
 		int[][] CMinus = pnmlData
 				.getTokenViews()
 				.getFirst()
@@ -759,17 +759,34 @@ public class StateSpaceGenerator {
 						pnmlData.getTransitionsArrayList(),
 						pnmlData.getPlacesArrayList());
 
+
 		// Create marking array to return
 		int[] newmarking = new int[marking.length];
 
-		for (int count = 0; count < marking.length; count++) {
-			CMinusValue = CMinus[count][transIndex];
-			CPlusValue = CPlus[count][transIndex];
-			if(CMinusValue==-1 || CPlusValue==-1){
-				throw new MarkingNotIntegerException();
-				
+        //这里完全是普通的Petri网，需要修改
+		if(tr instanceof LogicalTransitionView)
+		{
+            Matrix VF=((LogicalTransitionView)tr).getVCA();
+            int col=((LogicalTransitionView)tr).getVCA_fire_colum();
+			for (int count = 0; count < marking.length; count++) {
+				//这里还需修改,计算时VCA到VF需要保证库所与变迁相连的弧不为CA,这里直接引用了VF
+				CMinusValue = CMinus[count][transIndex];
+				CPlusValue = CPlus[count][transIndex];
+				VFValue=VF.get(count,col);
+				if(VFValue==-1||pnmlData.IsPlace2TransitionFN4Graph(count,tr)) VFValue=0;
+				newmarking[count] = marking[count] - CMinusValue + CPlusValue-VFValue;
 			}
-			newmarking[count] = marking[count] - CMinusValue + CPlusValue;
+		}
+		else {
+			for (int count = 0; count < marking.length; count++) {
+				CMinusValue = CMinus[count][transIndex];
+				CPlusValue = CPlus[count][transIndex];
+				if (CMinusValue == -1 || CPlusValue == -1) {
+					throw new MarkingNotIntegerException();
+
+				}
+				newmarking[count] = marking[count] - CMinusValue + CPlusValue;
+			}
 		}
 			
 		setTokenAfterFiringTransition(transIndex);

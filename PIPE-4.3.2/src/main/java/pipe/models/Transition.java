@@ -7,7 +7,7 @@ import java.io.Serializable;
  */
 public class Transition extends Connectable implements Serializable
 {
-   // private double _rate;
+    private double _rate;
     private Integer _priority;
 	private String _rateExpr;
     public Transition(String id, String name)
@@ -20,19 +20,20 @@ public class Transition extends Connectable implements Serializable
         super(id, name);
 //        _rate = rate;
         _rateExpr=rateExpr;
+        _rate=Double.parseDouble(rateExpr);
         _priority = priority;
     }
 
 
-//    public double getRate()
-//    {
-//        return _rate;
-//    }
-//
-//    public void setRate(double rate)
-//    {
-//        _rate = rate;
-//    }
+    public double getRate()
+    {
+        return _rate;
+    }
+
+    public void setRate(double rate)
+    {
+        _rate = rate;
+    }
     
 
     public Integer getPriority()

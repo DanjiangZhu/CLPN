@@ -203,7 +203,6 @@ public class TokenView extends Observable implements Serializable, IObserver
     {
         return _model.getInhibitionMatrix();
     }
-
     public int[][] getInhibitionMatrix(ArrayList<InhibitorArcView> inhibitorArrayView,ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
     {
         return _model.getInhibitionMatrix(inhibitorArrayView, transitionsArray, placesArray);
