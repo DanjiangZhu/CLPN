@@ -78,7 +78,7 @@ implements IModule
 		// Check if this net is a CGSPN. If it is, then this
 		// module won't work with it and we must convert it.
 		if(pnmlData.getEnabledTokenClassNumber() > 1){
-//		if(pnmlData.getTokenViews().size() > 1)
+        //if(pnmlData.getTokenViews().size() > 1)
 			Expander expander = new Expander(pnmlData);
 			pnmlData = expander.unfold();
 			JOptionPane.showMessageDialog(null, "This is CGSPN. The analysis will only apply to default color (black)",
