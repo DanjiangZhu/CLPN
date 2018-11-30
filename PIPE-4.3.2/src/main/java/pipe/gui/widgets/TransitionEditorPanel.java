@@ -510,10 +510,11 @@ if(_transitionView instanceof LogicalTransitionView) {
             transitionEditorPanel.add(logicLabel,logicLabelGBC);
 
             //控制逻辑相关输入
-            JPanel logicPanel = new JPanel();
-            JTextArea logicExpressionText = new JTextArea();
+            logicPanel = new JPanel();
+            logicExpressionText = new JTextArea();
             logicExpressionText.setLineWrap(true);//自动换行
             logicExpressionText.setRows(3);//todo-Dj: 宽度还没改好
+            logicExpressionText.setText(((LogicalTransitionView) _transitionView).getFormula());
 
             JScrollPane logicScrollPane = new JScrollPane(logicExpressionText);
             logicScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
@@ -942,6 +943,13 @@ if(_transitionView instanceof LogicalTransitionView) {
             _view.getHistoryManager().addEdit(_transitionView.rotate(angle));
          }
       }
+
+      //按ok button，将逻辑公式写入到LogicTransitionView的属性中
+      if(_transitionView instanceof LogicalTransitionView){
+          String logicText = logicExpressionText.getText();
+          //todo-Dj:公式正确性的检验
+          ((LogicalTransitionView) _transitionView).setFormula(logicText);
+      }
       
       _transitionView.repaint();
       
@@ -980,6 +988,8 @@ if(_transitionView instanceof LogicalTransitionView) {
     private javax.swing.JPanel serverPanel;
     private javax.swing.JRadioButton singleServerRadioButton;
     private javax.swing.JRadioButton timedRadioButton;
+    private JPanel logicPanel;
+    private JTextArea logicExpressionText;
    // private JCheckBox constantRateCheckbox;
     //private JCheckBox functionalRateCheckbox;
     // End of variables declaration//GEN-END:variables
