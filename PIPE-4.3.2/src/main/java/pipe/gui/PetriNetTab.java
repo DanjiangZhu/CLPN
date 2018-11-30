@@ -517,8 +517,8 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
                         break;
 
                     case Constants.ARC:
-                    case Constants.VIRTUALARC://增加只读弧的处理
                     case Constants.INHIBARC:
+                    case Constants.VIRTUALARC://增加只读弧的处理
                         if(_createArcView != null)
                             addPoint(_createArcView, e);
                         break;
