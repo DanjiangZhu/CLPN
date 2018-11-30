@@ -1,5 +1,6 @@
 package pipe.views;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -14,6 +15,7 @@ import pipe.models.*;
 import pipe.models.interfaces.IObserver;
 import pipe.utilities.Copier;
 import pipe.utilities.transformers.PNMLTransformer;
+import  pipe.utilities.math.Matrix;
 import pipe.views.viewComponents.AnnotationNote;
 import pipe.views.viewComponents.Note;
 import pipe.views.viewComponents.Parameter;
@@ -40,6 +42,8 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
     private ArrayList<ArcView> _arcViews;
 
     private ArrayList<InhibitorArcView> _inhibitorViews;
+
+    private ArrayList<VirtualArcView> _virtualViews;
 
     private ArrayList<AnnotationNote> _labels;
 
@@ -69,6 +73,8 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
     private Hashtable _arcsMap;
 
     private Hashtable _inhibitorsMap;
+
+    private Hashtable _virtualsMap;
 
     private ArrayList _stateGroups;
 
@@ -111,6 +117,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
             newClone._transitionViews = deepCopy(_transitionViews);
             newClone._arcViews = deepCopy(_arcViews);
             newClone._inhibitorViews = deepCopy(_inhibitorViews);
+            newClone._virtualViews = deepCopy(_virtualViews);
             newClone._labels = deepCopy(_labels);
             newClone._tokenSetController =
                     (TokenSetController) Copier.deepCopy(_tokenSetController); //TODO test this SJD
@@ -201,12 +208,14 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         _transitionViews = new ArrayList<TransitionView>();
         _arcViews = new ArrayList<ArcView>();
         _inhibitorViews = new ArrayList<InhibitorArcView>();
+        _virtualViews = new ArrayList<VirtualArcView>();
         _labels = new ArrayList<AnnotationNote>();
         _stateGroups = new ArrayList();
         _rateParameters = new ArrayList<RateParameter>();
         _initialMarkingVector = null;
         _arcsMap = new Hashtable();
         _inhibitorsMap = new Hashtable();
+        _virtualsMap = new Hashtable();
         _tokenSetController = new TokenSetController();
         _tokenSetController.addObserver(this);
     }
@@ -360,6 +369,51 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         }
     }
 
+    public void addArc(VirtualArcView virtualArcViewInput) {
+        boolean unique = true;
+
+        if (virtualArcViewInput != null) {
+            if (virtualArcViewInput.getId() != null && virtualArcViewInput.getId().length() > 0) {
+                for (ArcView _arcView : _virtualViews) {
+                    if (virtualArcViewInput.getId().equals(_arcView.getId())) {
+                        unique = false;
+                    }
+                }
+            } else {
+                String id = null;
+                if (_virtualViews != null && _virtualViews.size() > 0) {
+                    int no = _virtualViews.size();
+                    do {
+                        for (ArcView _arcView : _virtualViews) {
+                            id = "A" + no;
+                            if (_arcView != null) {
+                                if (id.equals(_arcView.getId())) {
+                                    unique = false;
+                                    no++;
+                                } else {
+                                    unique = true;
+                                }
+                            }
+                        }
+                    } while (!unique);
+                } else {
+                    id = "A0";
+                }
+                if (id != null) {
+                    virtualArcViewInput.setId(id);
+                } else {
+                    virtualArcViewInput.setId("error");
+                }
+            }
+            _virtualViews.add(virtualArcViewInput);
+            addVirtualArcToVirtualsMap(virtualArcViewInput);
+
+            setChanged();
+            setMatrixChanged();
+            notifyObservers(virtualArcViewInput);
+        }
+    }
+
     public void addArc(InhibitorArcView inhibitorArcViewInput) {
         boolean unique = true;
 
@@ -433,6 +487,40 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         }
     }
 
+    private void addVirtualArcToVirtualsMap(VirtualArcView virtualArcViewInput)
+    {
+        ConnectableView source = virtualArcViewInput.getSource();
+        ConnectableView target = virtualArcViewInput.getTarget();
+        ArrayList newList;
+
+        if(source != null)
+        {
+            if(_virtualsMap.get(source) != null)
+            {
+                ((ArrayList) _virtualsMap.get(source)).add(virtualArcViewInput);
+            }
+            else
+            {
+                newList = new ArrayList();
+                newList.add(virtualArcViewInput);
+                _virtualsMap.put(source, newList);
+            }
+        }
+
+        if(target != null)
+        {
+            if(_virtualsMap.get(target) != null)
+            {
+                ((ArrayList) _virtualsMap.get(target)).add(virtualArcViewInput);
+            }
+            else
+            {
+                newList = new ArrayList();
+                newList.add(virtualArcViewInput);
+                _virtualsMap.put(target, newList);
+            }
+        }
+    }
     private void addInhibitorArcToInhibitorsMap(InhibitorArcView inhibitorArcViewInput) {
         ConnectableView source = inhibitorArcViewInput.getSource();
         ConnectableView target = inhibitorArcViewInput.getTarget();
@@ -782,6 +870,8 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         int angle = 0;
         int priority = 1;
         double weight = 1.0;
+        String formula="";
+        Boolean logical=false;
 
         String positionXTempStorage = element.getAttribute("positionX");
         String positionYTempStorage = element.getAttribute("positionY");
@@ -796,6 +886,8 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         String nameAngle = element.getAttribute("angle");
         String namePriority = element.getAttribute("priority");
         String parameterTempStorage = element.getAttribute("parameter");
+        String logicalTempStorage=element.getAttribute("logical");
+        String logical_formulaTempStorage=element.getAttribute("logical_formula");
 
         if (nameTimed.length() == 0) {
             timedTransition = false;
@@ -851,7 +943,20 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
             priority = Integer.valueOf(namePriority).intValue();
         }
 
-        TransitionView transitionView =
+        if(logicalTempStorage.length()>0){
+            logical= Boolean.parseBoolean(logicalTempStorage);
+        }
+        if(logical_formulaTempStorage.length()>0) {
+            formula=logical_formulaTempStorage;
+        }
+
+        TransitionView transitionView;
+        if(logical)
+            transitionView=new LogicalTransitionView(positionXInput, positionYInput, idInput, nameInput, nameOffsetXInput,
+                    nameOffsetYInput, timedTransition, infiniteServer, angle,
+                    new Transition(idInput, nameInput, rate, priority),formula);
+            else
+         transitionView =
                 new TransitionView(positionXInput, positionYInput, idInput, nameInput, nameOffsetXInput,
                         nameOffsetYInput, timedTransition, infiniteServer, angle,
                         new Transition(idInput, nameInput, rate, priority));
@@ -993,9 +1098,19 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
       * @see pipe.models.interfaces.IPetriNet#createMatrixes()
       */
     public void createMatrixes() {
+
         for (TokenView tc : _tokenSetController.getTokenViews()) {
             tc.createIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
             tc.createInhibitionMatrix(_inhibitorViews, _transitionViews, _placeViews);
+        }
+        for(int i=0;i<_transitionViews.size();i++)
+        {
+            if(_transitionViews.get(i) instanceof LogicalTransitionView) {
+               LogicalTransitionView trs = (LogicalTransitionView) _transitionViews.get(i);
+                if (trs.getType().equals("LogicalTransition")) {
+                    trs.createVirtualMatrix(_placeViews);
+                }
+            }
         }
         createInitialMarkingVector();
         createCurrentMarkingVector();
@@ -1089,7 +1204,11 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
     public void fireTransition(TransitionView transitionView) {
         if (transitionView != null) {
             if (transitionView.isEnabled() && _placeViews != null) {
-                int transitionNo = _transitionViews.indexOf(transitionView);
+                int transitionNo = _transitionViews.indexOf(transitionView);//得到发生变迁在变迁序列中的序号
+                Matrix VFA=null;
+                //VCA转为VFA
+                if(transitionView instanceof  LogicalTransitionView)
+                    VFA=GetVFA((LogicalTransitionView)transitionView);
                 createMatrixes();
                 for (int placeNo = 0; placeNo < _placeViews.size(); placeNo++) {
                     for (MarkingView markingView : _placeViews.get(placeNo).getCurrentMarkingView()) {
@@ -1100,10 +1219,13 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                         int oldMarking =
                                 _currentMarkingVector[placeNo].get(oldMarkingPositionInTheList).getCurrentMarking();
                         //  tokenView.createIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
-
-                        int markingToBeAdded = tokenView.
-                                getIncidenceMatrix().
-                                get(placeNo, transitionNo);
+                        int markingToBeAdded ;
+                        if(transitionView instanceof  LogicalTransitionView)
+                            //计算用Matrixs为VFA的一列
+                            markingToBeAdded=tokenView.getIncidenceMatrix().get(placeNo, transitionNo)-VFA.get(placeNo,0);
+                        else{
+                            markingToBeAdded = tokenView.getIncidenceMatrix().get(placeNo, transitionNo);
+                        }
                         markingView.setCurrentMarking(oldMarking + markingToBeAdded);
                     }
                     _placeViews.get(placeNo).repaint();
@@ -1256,6 +1378,47 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                     continue;
                 }
             }
+            TransitionView[] transArray=this.getTransitionViews();
+            if(transArray[i] instanceof  LogicalTransitionView)
+            {
+                Matrix curmatrix = new Matrix(placeCount, 1);
+                for (int j = 0; j < placeCount; j++) {
+                    MarkingView temp = markings[j].get(0);
+                    curmatrix.set(j, 0, markings[j].get(0).getCurrentMarking());
+                }
+                Boolean IsSame = false;
+                //记录是符合的析取范式的列数
+                int posid = 0;
+                int markingToBeAdded=0;
+                int oldmarking=0;
+
+                //将当前marking与VCA做比较，判断是否可以发生变迁
+                for (int j = 0; j < ((LogicalTransitionView)transArray[i]).getVCA_colum(); j++) {
+                    for (int k = 0; k < placeCount; k++) {
+                        int temp1 = ((LogicalTransitionView)transArray[i]).getVCA().get(k, j);
+                        int temp2 = curmatrix.get(k, 0);
+                        if (temp1 != -1 && temp1 != temp2) {
+                            break;
+                        }
+                        if (k == placeCount - 1) {
+                            posid = j;
+                            IsSame = true;
+                        }
+                    }
+                }
+
+                //判断是否会破坏容量限制
+                Matrix VFA=GetVFA((LogicalTransitionView)transArray[i]);
+                for(int placeNo=0;placeNo<placeCount;placeNo++){
+                    markingToBeAdded= _placeViews.get(placeNo).getCurrentMarkingView().get(0).getToken().getIncidenceMatrix().get(placeNo, i)-VFA.get(placeNo,0);
+                    oldmarking=_placeViews.get(placeNo).getTotalMarking();
+                    if(oldmarking+markingToBeAdded>1) IsSame=false;
+                }
+
+                result[i] = IsSame;
+                ((LogicalTransitionView)transArray[i]).setVCA_fire_colum(posid);
+            }
+            else{
             result[i] = true; // inicialitzam a enabled
             for (int j = 0; j < placeCount; j++) {
                 boolean allTokenClassesEnabled = true;
@@ -1310,6 +1473,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                     }
                 }
             }
+            }
         }
 
         // Now make sure that if any of the enabled _transitions are immediate
@@ -1328,6 +1492,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                     result[i] = false;
                 }
             }
+
         }
 
         // print("areTransitionsEnabled: ",result);//debug
@@ -1416,6 +1581,44 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
 
 
             result[i] = true; // inicialitzam a enabled
+             if(transArray[i] instanceof LogicalTransitionView){
+                 Matrix curmatrix=new Matrix(placeCount,1);
+                 LogicalTransitionView tr=(LogicalTransitionView) transArray[i];
+                 for(int j=0;j<placeCount;j++)
+                 {
+                     MarkingView temp=markings[j].get(0);
+                     curmatrix.set(j,0,markings[j].get(0).getCurrentMarking());
+                 }
+                 Boolean IsSame=false;
+                 //记录是符合的析取范式的列数
+                 int posid=0;
+                 int markingToBeAdded=0;
+                 int oldmarking=0;
+                 //将当前marking与VCA做比较，判断是否可以发生变迁
+                 for(int j=0;j<tr.getVCA_colum();j++ )
+                 {
+                     for(int k=0;k<placeCount;k++)
+                     {
+                         int temp1=tr.getVCA().get(k,j);
+                         int temp2=curmatrix.get(k,0);
+                         if(temp1!=-1&&temp1!=temp2){break;}
+                         if(k==placeCount-1) {posid=j;IsSame=true;}
+                     }
+                 }
+                 tr.setVCA_fire_colum(posid);
+
+                 //判断是否会破坏容量限制
+                 Matrix VFA=GetVFA(tr);
+                 for(int placeNo=0;placeNo<placeCount;placeNo++){
+                     markingToBeAdded=_placeViews.get(placeNo).getCurrentMarkingView().get(0).getToken().getIncidenceMatrix().get(placeNo, i)-VFA.get(placeNo,0);
+                     oldmarking=_placeViews.get(placeNo).getTotalMarking();
+                     if(oldmarking+markingToBeAdded>1) IsSame=false;
+                 }
+
+
+                 result[i]=IsSame;
+             }
+             else {
             for (int j = 0; j < placeCount; j++) {
                 boolean allTokenClassesEnabled = true;
                 int totalMarkings = 0;
@@ -1465,6 +1668,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                     break;
                 }
             }
+        }
             // we look for the highest priority of the enabled _transitions
             if (result[i]) {
                 if (transArray[i].isTimed()) {
@@ -1764,7 +1968,12 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                         ArcView newArcView = createArc(element);
                         if (newArcView instanceof InhibitorArcView) {
                             addArc((InhibitorArcView) newArcView);
-                        } else {
+                        }
+                        else if (newArcView instanceof  VirtualArcView)
+                        {
+                            addArc((VirtualArcView)newArcView);
+                        }
+                        else {
                             addArc((NormalArcView) newArcView);
                             checkForInverseArc((NormalArcView) newArcView);
                         }
@@ -2320,7 +2529,15 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                     new InhibitorArcView((double) aStartx, (double) aStarty, (double) aEndx, (double) aEndy, sourceIn,
                             targetIn, weightInput, idInput,
                             new InhibitorArc(sourceIn.getModel(), targetIn.getModel()));//, weightModel));
-        } else {
+        }
+        else if(type.equals("virtual"))
+        {
+            tempArcView =
+                    new VirtualArcView((double) aStartx, (double) aStarty, (double) aEndx, (double) aEndy, sourceIn,
+                            targetIn, weightInput, idInput,
+                            new VirtualArc(sourceIn.getModel(), targetIn.getModel()));
+        }
+        else {
             tempArcView =
                     new NormalArcView((double) aStartx, (double) aStarty, (double) aEndx, (double) aEndy, sourceIn,
                             targetIn, weightInput, idInput, taggedArc,
@@ -2523,7 +2740,45 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
             }
         }
     }
+    //判断库所与变迁之间的弧是否为FN
+    private Boolean IsPlace2TransitionFN(PlaceView pl,LogicalTransitionView tr) {
+        Boolean temp=false;
+        for(int i=0;i<_virtualViews.size();i++){
+            ConnectableView source = _virtualViews.get(i).getSource();
+            ConnectableView target = _virtualViews.get(i).getTarget();
 
+            if( pl.equals(source)&&tr.equals(target))
+                temp=true;
+        }
+        return temp;
+    }
+
+    //生成变迁的VFA
+    private Matrix GetVFA(LogicalTransitionView tr) {
+        Matrix temp_VCA = tr.getVCA();
+        int column = tr.getVCA_fire_colum();
+        Matrix VFA = new Matrix(_placeViews.size(), 1);
+        for (int j = 0; j < _placeViews.size(); j++) {
+            if (temp_VCA.get(j, column) != -1 && (!IsPlace2TransitionFN(_placeViews.get(j), tr)))
+                VFA.set(j, 0, temp_VCA.get(j, column));
+            else VFA.set(j, 0, 0);
+        }
+        return  VFA;
+    }
+
+    //判断库所与变迁之间的弧是否为FN(为生成可达图准备)
+    public Boolean IsPlace2TransitionFN4Graph(int p,TransitionView tr) {
+        Boolean temp=false;
+        PlaceView pl=_placeViews.get(p);
+        for(int i=0;i<_virtualViews.size();i++){
+            ConnectableView source = _virtualViews.get(i).getSource();
+            ConnectableView target = _virtualViews.get(i).getTarget();
+
+            if( pl.equals(source)&&tr.equals(target))
+                temp=true;
+        }
+        return temp;
+    }
     //@Override
     public void update(Observable arg0, Object arg1) {
         if ((arg0.equals(_tokenSetController)) && (arg1 instanceof TokenView)) {

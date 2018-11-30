@@ -218,7 +218,6 @@ public class Token extends Observable implements Serializable
     {
         return _inhibitionMatrix;
     }
-
     public int[][] getInhibitionMatrix(ArrayList<InhibitorArcView> inhibitorArrayView,
                                        ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
     {
@@ -250,7 +249,7 @@ public class Token extends Observable implements Serializable
                 PetriNetViewComponent pn = arcView.getTarget();
                 if(pn != null)
                 {
-                    if(pn instanceof PlaceView)
+                    if(pn instanceof PlaceView) //由于FR的目标只能是 Transition，这里的判断实际上就表示这个Arc不会是FR
                     {
                         PlaceView placeView = (PlaceView) pn;
                         pn = arcView.getSource();
@@ -341,11 +340,11 @@ public class Token extends Observable implements Serializable
                                         		
                                         		_backwardsIncidenceMatrix.set(placeNo, transitionNo, marking*enablingDegree);
                                         	}else{
+                                                //Arc不能为FR
+                                                if(!(transitionView instanceof LogicalTransitionView) && !(arcView.getType().equals("virtual")))
                                         		_backwardsIncidenceMatrix.set(placeNo, transitionNo, marking);//arcView.getWeightOfTokenClass(_id));
+                                                else _backwardsIncidenceMatrix.set(placeNo, transitionNo, 0);
                                         	}
-                                        //	System.out.println("compare: "+ token.getCurrentMarking()+ " raw: "+ token.getCurrentFunctionalMarking()+"   "+arcView.getWeightFunctionOfTokenClass(_id));
-                                            
-                                       //     System.out.println(arcView.getWeightFunctionOfTokenClass(_id));
                                         }
                                         catch(Exception e)
                                         {
