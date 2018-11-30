@@ -31,7 +31,8 @@ import java.util.*;
 public class LogicalTransitionView extends TransitionView {
     private String _type="LogicalTransition";
 
-
+    private GeneralPath __path;
+    private Shape _proximityTransition;
 
     private String _formula;
 
@@ -51,6 +52,7 @@ public class LogicalTransitionView extends TransitionView {
     public LogicalTransitionView(double positionXInput, double positionYInput, String id, String name, double nameOffsetX, double nameOffsetY, boolean timed, boolean infServer, int angleInput, Transition model, String formula){
         super(positionXInput, positionYInput, id, name, nameOffsetX, nameOffsetY, timed,infServer,angleInput, model);
         _formula = formula;
+        constructTransition();
     }
 
     //逻辑变迁的右键编辑菜单
@@ -83,12 +85,26 @@ public class LogicalTransitionView extends TransitionView {
             g2.setColor(Constants.ELEMENT_FILL_COLOUR);
         }
         g2.setPaint(Constants.ELEMENT_FILL_COLOUR);
-
+        g2.draw(__path);
+        g2.fill(__path);
 
         g2.setFont(new Font("Arial",Font.BOLD,8));
         g2.drawString("Ca", 22, 8);
         setToolTipText("EFT = " + this.getRate() + "; formula = " + this.getFormula());
     }
 
+    private void constructTransition()
+    {
+        __path = new GeneralPath();
+//        if(type==0)
+            __path.append(new Rectangle2D.Double((_componentWidth - TRANSITION_WIDTH) / 2, 0, TRANSITION_WIDTH/2 , TRANSITION_HEIGHT), false);
+//        else
+//            _path.append(new Rectangle2D.Double((_componentWidth - TRANSITION_WIDTH) / 2, 0, TRANSITION_WIDTH, TRANSITION_HEIGHT), false);
+        outlineTransition();
+    }
 
+    private void outlineTransition()
+    {
+        _proximityTransition = (new BasicStroke(Constants.PLACE_TRANSITION_PROXIMITY_RADIUS)).createStrokedShape(__path);
+    }
 }
