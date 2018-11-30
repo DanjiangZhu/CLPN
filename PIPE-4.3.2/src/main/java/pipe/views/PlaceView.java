@@ -593,7 +593,7 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
 		update();
 	}
 
-	@Override
+
 	public void update(Observable observable, Object obj)
 	{
 		if ((observable instanceof PipeObservable) && (obj == null))
