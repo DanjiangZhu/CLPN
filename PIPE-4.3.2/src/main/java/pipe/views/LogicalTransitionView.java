@@ -85,15 +85,14 @@ public class LogicalTransitionView extends TransitionView {
 
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        if(_selected && !_ignoreSelection)
-        {
-            g2.setColor(Constants.SELECTION_FILL_COLOUR);
+        if (_highlighted) {
+            g2.setPaint(Constants.ENABLED_TRANSITION_COLOUR);
+        } else if (_selected && !_ignoreSelection) {
+            g2.setPaint(Constants.SELECTION_LINE_COLOUR);
+        } else {
+            g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
         }
-        else
-        {
-            g2.setColor(Constants.ELEMENT_LINE_COLOUR);
-        }
-        g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
+        
         g2.draw(__path);
         g2.fill(__path);
 

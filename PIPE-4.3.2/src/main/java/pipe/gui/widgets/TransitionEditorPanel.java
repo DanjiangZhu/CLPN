@@ -288,7 +288,7 @@ private final TransitionView _transitionView;
 
         int rateGridX = 0, rateGridY = 0;//rateLabel的位置
         int rateTextFieldGridX = 0, rateTextFieldGridY = 0;
-        int rateComboBoxGridX = 0,rateComboBoxGridY = 0;;
+        int rateComboBoxGridX = 0,rateComboBoxGridY = 0;
         int editorGridX = 0, editorGridY = 0;
 
         //transitionEditorPanel布局
@@ -502,7 +502,7 @@ if(_transitionView instanceof LogicalTransitionView) {
         int logicPanelGridX, logicPanelGridY = 0;
         if(_transitionView instanceof LogicalTransitionView){
             logicLabelGridY = 1;
-            logicPanelGridX = 0;
+            logicPanelGridX = 1;
             logicPanelGridY = 1;
 
             JLabel logicLabel = new JLabel("Control Logic:");//todo-Dj JLbael的布局
@@ -513,10 +513,15 @@ if(_transitionView instanceof LogicalTransitionView) {
             logicPanel = new JPanel();
             logicExpressionText = new JTextArea();
             logicExpressionText.setLineWrap(true);//自动换行
-            logicExpressionText.setRows(3);//todo-Dj: 宽度还没改好
+
             logicExpressionText.setText(((LogicalTransitionView) _transitionView).getFormula());
 
-            JScrollPane logicScrollPane = new JScrollPane(logicExpressionText);
+            JScrollPane logicScrollPane = new JScrollPane(logicExpressionText){
+                @Override
+                public Dimension getPreferredSize() {
+                    return new Dimension(300, 60);
+                }
+            };
             logicScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
             logicScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 //            logicScrollPane.setBorder(javax.swing.BorderFactory.createTitledBorder("Logic input:"));//todo-DJ 需实现逻辑公式编辑功能
@@ -524,6 +529,7 @@ if(_transitionView instanceof LogicalTransitionView) {
 //            logicPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(""));
 //            logicPanel.setLayout(new java.awt.GridLayout(1,0));
             logicPanel.add(logicScrollPane);
+
 
             GridBagConstraints logicPanelGBC = gridBagConstraintsGEN(logicPanelGridX,(logicPanelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),3,GridBagConstraints.WEST,GridBagConstraints.BOTH);
 
