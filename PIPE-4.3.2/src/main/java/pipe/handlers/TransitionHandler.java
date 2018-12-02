@@ -65,13 +65,13 @@ public class TransitionHandler
       JMenuItem menuItem = new JMenuItem("Edit Transition");
 
       //对逻辑变迁右键编辑菜单的响应处理
-      if(my instanceof LogicalTransitionView){
-         menuItem.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-               ((LogicalTransitionView) my).showEditor();
-            }
-         });
-      }
+//      if(my instanceof LogicalTransitionView){
+//         menuItem.addActionListener(new ActionListener() {
+//            public void actionPerformed(ActionEvent e) {
+//               ((LogicalTransitionView) my).showEditor();
+//            }
+//         });
+//      }
 
 
       menuItem.addActionListener(new ActionListener(){
