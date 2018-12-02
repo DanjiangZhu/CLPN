@@ -82,6 +82,7 @@ public class PlaceTransitionObjectHandler
                }
             }
          case Constants.INHIBARC:
+            case Constants.VIRTUALARC:
          case Constants.FAST_PLACE:
          case Constants.FAST_TRANSITION:
              if (ApplicationSettings.getApplicationView().getCurrentTab()._createArcView == null) {
@@ -89,12 +90,16 @@ public class PlaceTransitionObjectHandler
                   if (currentObject instanceof PlaceView) {
                       createArc(new InhibitorArcView(currentObject), currentObject);
                   }
-               } else {
+               } else if (ApplicationSettings.getApplicationModel().getMode() == Constants.VIRTUALARC){
+                    if (currentObject instanceof PlaceView) {
+                       createArc(new VirtualArcView(currentObject), currentObject);
+                    }
+                 } else {
                    createArc(new NormalArcView(currentObject), currentObject);
                }
             }
             break;
-            
+
          default:
             break;
       }
@@ -175,7 +180,67 @@ public class PlaceTransitionObjectHandler
                }
             }
             break;
-            
+
+         case Constants.VIRTUALARC:
+            VirtualArcView createVirtualArcView = (VirtualArcView) view._createArcView;
+            if (createVirtualArcView != null) {
+               if (!currentObject.getClass().equals(
+                       createVirtualArcView.getSource().getClass())) {
+
+                  Iterator arcsFrom =
+                          createVirtualArcView.getSource().getConnectFromIterator();
+                  // search for pre-existent arcs from createInhibitorArc's
+                  // source to createInhibitorArc's target
+                  while(arcsFrom.hasNext()) {
+                     ArcView someArcView = ((ArcView)arcsFrom.next());
+                     if (someArcView == createVirtualArcView) {
+                        break;
+                     } else if (someArcView.getTarget() == currentObject &&
+                             someArcView.getSource() == createVirtualArcView.getSource()) {
+                        isNewArc = false;
+                        if (someArcView instanceof NormalArcView){
+                           // user has drawn an inhibitor arc where there is
+                           // a normal arc already - nothing to do
+                        } else if (someArcView instanceof VirtualArcView) {
+                           // user has drawn an inhibitor arc where there is
+                           // an inhibitor arc already - we increment arc's
+                           // weight
+                           LinkedList<MarkingView> weight = Copier.mediumCopy(someArcView.getWeight());
+                           for(MarkingView m:weight){
+                              m.setCurrentMarking(m.getCurrentMarking()+1);
+                           }
+                           historyManager.addNewEdit(someArcView.setWeight(someArcView.getWeight()));
+                        } else {
+                           // This is not supposed to happen
+                        }
+                        createVirtualArcView.delete();
+                        someArcView.getTransition().removeArcCompareObject(
+                                createVirtualArcView);
+                        someArcView.getTransition().updateConnected();
+                        break;
+                     }
+                  }
+
+                  if (isNewArc) {
+                     createVirtualArcView.setSelectable(true);
+                     createVirtualArcView.setTarget(currentObject);
+                     currentObject.addInbound(createVirtualArcView);
+                     // Evil hack to prevent the arc being added to PetriNetTab twice
+                     contentPane.remove(createVirtualArcView);
+                     model.addArc(createVirtualArcView);
+                     view.addNewPetriNetObject(createVirtualArcView);
+                     historyManager.addNewEdit(
+                             new AddPetriNetObject(createVirtualArcView,
+                                     view, model));
+                  }
+
+                  // arc is drawn, remove handler:
+                  createVirtualArcView.removeKeyListener(keyHandler);
+                  keyHandler = null;
+                  view._createArcView = null;
+               }
+            }
+            break;
          case Constants.FAST_TRANSITION:
          case Constants.FAST_PLACE:
             fastMode = true;
