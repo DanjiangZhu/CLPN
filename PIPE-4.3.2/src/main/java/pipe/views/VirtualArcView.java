@@ -11,7 +11,7 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 
 public class VirtualArcView extends ArcView implements Serializable {
-    private final static String type = "Virtual Arc";
+    private final static String type = "virtual";
     private final static int OVAL_X = -4;
     private final static int OVAL_Y = -8;
     private final static int OVAL_WIDTH = 8;
