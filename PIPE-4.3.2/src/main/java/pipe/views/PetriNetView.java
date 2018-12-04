@@ -1832,6 +1832,16 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         return returnArray;
     }
 
+    public VirtualArcView[] virtualarcs() {
+        VirtualArcView[] returnArray = new VirtualArcView[_virtualViews.size()];
+
+        for (int i = 0; i < _virtualViews.size(); i++) {
+            returnArray[i] = _virtualViews.get(i);
+        }
+        return returnArray;
+    }
+
+
     /* (non-Javadoc)
       * @see pipe.models.interfaces.IPetriNet#getArcsArrayList()
       */

@@ -1,5 +1,6 @@
 package pipe.utilities.writers;
 
+import net.sourceforge.jeval.function.math.Log;
 import org.w3c.dom.*;
 import pipe.common.dataLayer.StateGroup;
 import pipe.views.MarkingView;
@@ -118,7 +119,22 @@ public class PNMLWriter
 	                }
 	                NET.appendChild(newArc);
             	}
-                //newArc = null;
+            }
+
+            VirtualArcView[] virtualarcViews = _netViewModel.virtualarcs();
+            for(VirtualArcView virtualarcView : virtualarcViews)
+            {
+                if(!virtualarcView.isDeleted()){
+                    Element newArc = createArcElement(virtualarcView, pnDOM, saveFunctional);
+
+                    int arcPoints = virtualarcView.getArcPath().getArcPathDetails().length;
+                    String[][] point = virtualarcView.getArcPath().getArcPathDetails();
+                    for(int j = 0; j < arcPoints; j++)
+                    {
+                        newArc.appendChild(createArcPoint(point[j][0], point[j][1], point[j][2], pnDOM, j));
+                    }
+                    NET.appendChild(newArc);
+                }
             }
 
             InhibitorArcView[] inhibitorArcViews = _netViewModel.inhibitors();
@@ -326,7 +342,14 @@ public class PNMLWriter
             Double nameOffsetYInput = inputTransitionView.getNameOffsetYObject();
             String idInput = inputTransitionView.getId();
             String nameInput = inputTransitionView.getName();
+            String logical_formula="";
+            String logical="false";
             //double aRate = inputTransitionView.getRate();
+            if(inputTransitionView instanceof LogicalTransitionView) {
+                 logical_formula = ((LogicalTransitionView) inputTransitionView).getFormula();
+                 logical="true";
+            }
+
             String aRate;
             if(saveFunctional){
             	aRate = inputTransitionView.getRateExpr();
@@ -359,6 +382,8 @@ public class PNMLWriter
             transitionElement.setAttribute("rate", aRate);
                                          //  (aRate != 1 ? String.valueOf(aRate) : "1.0"));
             transitionElement.setAttribute("timed", String.valueOf(timedTrans));
+            transitionElement.setAttribute("logical",logical);
+            transitionElement.setAttribute("logical_formula",logical_formula);
             transitionElement.setAttribute("infiniteServer",
                                            String.valueOf(infiniteServer));
             transitionElement.setAttribute("angle", String.valueOf(orientation));
