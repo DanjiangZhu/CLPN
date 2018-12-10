@@ -1,5 +1,6 @@
 package pipe.views;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import parser.ExprEvaluator;
 import pipe.controllers.TransitionController;
 import pipe.gui.*;
@@ -64,7 +65,7 @@ public class TransitionView extends ConnectableView implements Serializable
 	private boolean cratetype;
 	private boolean rateExprSet;
 	private String _functionalRateExpr;
-	
+
 
 //	private MyParser parser = new MyParser();
 
@@ -83,6 +84,7 @@ public class TransitionView extends ConnectableView implements Serializable
         _nameOffsetX = nameOffsetX;
         _nameOffsetY = nameOffsetY;
         _timed = timed;
+        setDelay();
         _infiniteServer = infServer;
         constructTransition();
         _angle = 0;
@@ -391,6 +393,17 @@ public class TransitionView extends ConnectableView implements Serializable
     {
         this._delay = _delay;
         _delayValid = true;
+    }
+
+    public void setDelay()
+    {
+        if(_timed){
+        //delay取一个服从指数分布的随机数
+            double z=Math.random();
+            this._delay = -(1/_model.getRate())*Math.log(z);
+        _delayValid = true;
+        }
+        else _delay=-1;
     }
 
     public double getDelay()
