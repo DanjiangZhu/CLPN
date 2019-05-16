@@ -41,6 +41,8 @@ public class LogicalTransitionView extends TransitionView {
     private  int VCA_colum;
     private int VCA_fire_colum;
 
+    private String _action_name;
+
     public String getFormula(){
         return _formula;
     }
@@ -49,18 +51,23 @@ public class LogicalTransitionView extends TransitionView {
         return _type;
     }
 
+    public String getAction_name(){return _action_name;}
+
     //没有return 一个HistoryItem。原因：变迁的控制逻辑不会改变，没必要记录变化历史。
     public void setFormula(String _formula) {
         this._formula = _formula;
     }
 
-    public LogicalTransitionView(double positionXInput, double positionYInput, String formula){
-        this(positionXInput, positionYInput, "", "", Constants.DEFAULT_OFFSET_X, Constants.DEFAULT_OFFSET_Y, false, false, 0, new Transition("", "", "1", 1), formula);
+    public void setAction_name(String _action_name){this._action_name=_action_name;}
+
+    public LogicalTransitionView(double positionXInput, double positionYInput, String formula,String actionName,Double weight,String graphTime){
+        this(positionXInput, positionYInput, "", "", Constants.DEFAULT_OFFSET_X, Constants.DEFAULT_OFFSET_Y, false, false, 0, new Transition("", "", "1", 1), formula,actionName,weight,graphTime);
     }
 
-    public LogicalTransitionView(double positionXInput, double positionYInput, String id, String name, double nameOffsetX, double nameOffsetY, boolean timed, boolean infServer, int angleInput, Transition model, String formula){
-        super(positionXInput, positionYInput, id, name, nameOffsetX, nameOffsetY, timed,infServer,angleInput, model);
+    public LogicalTransitionView(double positionXInput, double positionYInput, String id, String name, double nameOffsetX, double nameOffsetY, boolean timed, boolean infServer, int angleInput, Transition model, String formula,String actionName,Double weight,String graphTime){
+        super(positionXInput, positionYInput, id, name, nameOffsetX, nameOffsetY, timed,infServer,angleInput,weight ,graphTime,model);
         _formula = formula;
+        _action_name=actionName;
         constructTransition();
     }
 
@@ -170,4 +177,5 @@ public class LogicalTransitionView extends TransitionView {
 
         VCA_fire_colum=i;
     }
+
 }

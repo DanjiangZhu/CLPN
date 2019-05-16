@@ -52,6 +52,8 @@ public class TransitionView extends ConnectableView implements Serializable
     private RateParameter _rateParameter;
     private GroupTransitionView _groupTransitionView;
     private final Transition _model;
+    //模拟HCA发生时，所使用的Time
+    private String _GraphTime;
 
 
 	/** Place Width */
@@ -66,16 +68,20 @@ public class TransitionView extends ConnectableView implements Serializable
 	private boolean rateExprSet;
 	private String _functionalRateExpr;
 
+	//可达图中确定路径选择的概率
+	private Double _weight;
 
+	//变迁对应的system variable
+	private String sv;
 //	private MyParser parser = new MyParser();
 
 
     public TransitionView(double positionXInput, double positionYInput)
     {
-        this(positionXInput, positionYInput, "", "", Constants.DEFAULT_OFFSET_X, Constants.DEFAULT_OFFSET_Y, false, false, 0, new Transition("", "", "1", 1));
+        this(positionXInput, positionYInput, "", "", Constants.DEFAULT_OFFSET_X, Constants.DEFAULT_OFFSET_Y, false, false, 0,1.0,"", new Transition("", "", "1", 1));
     }
 
-    public TransitionView(double positionXInput, double positionYInput, String id, String name, double nameOffsetX, double nameOffsetY, boolean timed, boolean infServer, int angleInput, Transition model)
+    public TransitionView(double positionXInput, double positionYInput, String id, String name, double nameOffsetX, double nameOffsetY, boolean timed ,boolean infServer, int angleInput,Double weight,String graphTime, Transition model)
     {
         super(positionXInput, positionYInput, id, name, nameOffsetX, nameOffsetY, model);
         _model = model;
@@ -89,12 +95,15 @@ public class TransitionView extends ConnectableView implements Serializable
         constructTransition();
         _angle = 0;
 
+        _weight=weight;
         _enabled = false;
         _enabledBackwards = false;
         _highlighted = false;
         _rootThreeOverTwo = 0.5 * Math.sqrt(3);
         _arcAngleList = new ArrayList();
         _delayForShowingWarnings = 10000;
+
+        _GraphTime=graphTime;
 
         setCentre((int) _positionX, (int) _positionY);
         rotate(angleInput);
@@ -1121,4 +1130,19 @@ public class TransitionView extends ConnectableView implements Serializable
 	 * 
 	 */
 
+	public void setSv(String systemvariable)
+    {
+        sv=systemvariable;
+    }
+
+    public String getSv(String systemvariabl)
+    {
+       return sv;
+    }
+
+    public void set_weight(Double i){_weight=i;}
+    public Double get_weight(){return _weight;}
+
+    public void setGraphTime(String i){_GraphTime=i;}
+    public String getGraphTime(){return _GraphTime;}
 }

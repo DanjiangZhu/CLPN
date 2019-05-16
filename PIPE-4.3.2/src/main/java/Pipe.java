@@ -13,11 +13,11 @@ public class Pipe
 	@SuppressWarnings("unused")
 	private PipeApplicationController applicationController;
 
-    private static final Logger logger= LogManager.getLogger(Pipe.class);
+    //private static final Logger logger= LogManager.getLogger(Pipe.class);
 
 	private Pipe(String version)
     {
-        logger.trace("初始化Pipe");
+        //logger.trace("初始化Pipe");
 
 
         applicationModel = new PipeApplicationModel(version);

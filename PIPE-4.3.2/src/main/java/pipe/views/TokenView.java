@@ -3,6 +3,7 @@ package pipe.views;
 import pipe.controllers.TokenController;
 import pipe.exceptions.TokenLockedException;
 import pipe.models.Token;
+import pipe.models.VirtualArc;
 import pipe.models.interfaces.IObserver;
 import pipe.utilities.math.Matrix;
 
@@ -199,6 +200,13 @@ public class TokenView extends Observable implements Serializable, IObserver
         _model.setBackwardsIncidenceMatrix(backwardsIncidenceMatrix);
     }
 
+    public Matrix getVirtualMatrix(){return _model.getVirtualArcMatrix();}
+
+    public int[][] getVirtualMatrix(ArrayList<VirtualArcView> ArrayView,ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
+    {
+        return _model.getVirtualArcMatrix(ArrayView, transitionsArray, placesArray);
+    }
+
     public Matrix getInhibitionMatrix()
     {
         return _model.getInhibitionMatrix();
@@ -275,6 +283,11 @@ public class TokenView extends Observable implements Serializable, IObserver
     public void createInhibitionMatrix(ArrayList<InhibitorArcView> inhibitorsArray,ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
     {
         _model.createInhibitionMatrix(inhibitorsArray, transitionsArray, placesArray);
+    }
+
+    public void createVirtualArcMatrix(ArrayList<VirtualArcView> arcsArray, ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
+    {
+        _model.createVirtualArcMatrix(arcsArray, transitionsArray, placesArray);
     }
 
 	protected String getNormalizedID()
