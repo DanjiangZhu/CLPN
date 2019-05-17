@@ -42,6 +42,8 @@ private final TransitionView _transitionView;
    private final PetriNetView _pnmlData;
    private final PetriNetTab _view;
    private final JRootPane rootPane;
+   private final Double weight;
+   private final String GraphTime;
    
    
    /**
@@ -59,6 +61,8 @@ private final TransitionView _transitionView;
       rParameter = this._transitionView.getRateParameter();
       name = this._transitionView.getName();
       timed = this._transitionView.isTimed();
+      weight=this._transitionView.get_weight();
+      GraphTime=this._transitionView.getGraphTime();
       infiniteServer = this._transitionView.isInfiniteServer();
       rootPane = _rootPane;
       
@@ -241,6 +245,12 @@ private final TransitionView _transitionView;
         JLabel nameLabel = new JLabel();
         nameTextField = new JTextField();
 
+        JLabel weightLabel=new JLabel();
+        weightTextFeild=new JTextField();
+
+        JLabel GraphTimeLabel=new JLabel();
+        GraphTimeTextFeild=new JTextField();
+
         rateLabel = new javax.swing.JLabel();
         rateTextField = new javax.swing.JTextField();
         rateComboBox = new javax.swing.JComboBox();
@@ -319,9 +329,33 @@ private final TransitionView _transitionView;
         GridBagConstraints nameTextFieldgridBagConstraints = gridBagConstraintsGEN(nameTextFieldGridX,nameTextFieldGridY,3,GridBagConstraints.CENTER,GridBagConstraints.HORIZONTAL);
         transitionEditorPanel.add(nameTextField, nameTextFieldgridBagConstraints);
 
+        //weightLabel的布局
+        weightLabel.setText("Weight:");
+
+        GridBagConstraints weightLabelgridBagConstraints = gridBagConstraintsGEN(nameLabelGridX,nameLabelGridY+1,1,GridBagConstraints.EAST,GridBagConstraints.NONE);
+        transitionEditorPanel.add(weightLabel, weightLabelgridBagConstraints);
+
+        //weightLabel布局
+        weightTextFeild.setText(String.valueOf(_transitionView.get_weight()));
+
+        GridBagConstraints weightTextFieldgridBagConstraints = gridBagConstraintsGEN(nameTextFieldGridX,nameTextFieldGridY+1,3,GridBagConstraints.CENTER,GridBagConstraints.HORIZONTAL);
+        transitionEditorPanel.add(weightTextFeild, weightTextFieldgridBagConstraints);
+
+        //GraphTimeLabel的布局
+        GraphTimeLabel.setText("GraphTime:");
+
+        GridBagConstraints GraphTimeLabelgridBagConstraints = gridBagConstraintsGEN(nameLabelGridX,nameLabelGridY+2,1,GridBagConstraints.EAST,GridBagConstraints.NONE);
+        transitionEditorPanel.add(GraphTimeLabel, GraphTimeLabelgridBagConstraints);
+
+        //weightLabel布局
+        GraphTimeTextFeild.setText(_transitionView.getGraphTime());
+
+        GridBagConstraints GraphTimeTextFieldgridBagConstraints = gridBagConstraintsGEN(nameTextFieldGridX,nameTextFieldGridY+2,3,GridBagConstraints.CENTER,GridBagConstraints.HORIZONTAL);
+        transitionEditorPanel.add(GraphTimeTextFeild, GraphTimeTextFieldgridBagConstraints);
 
         if(timed || (_transitionView instanceof LogicalTransitionView)){
-            timingGridY = 1;
+            //原本是1，加了两行
+            timingGridY = 3;
             timgingPanelGridX = timingGridX + 1;
             timgingPanelGridY = timingGridY;
 
@@ -503,11 +537,16 @@ if(_transitionView instanceof LogicalTransitionView) {
         if(_transitionView instanceof LogicalTransitionView){
             logicLabelGridY = 1;
             logicPanelGridX = 1;
-            logicPanelGridY = 1;
+            logicPanelGridY = 2;
 
             JLabel logicLabel = new JLabel("Control Logic:");//todo-Dj JLbael的布局
-            GridBagConstraints logicLabelGBC = gridBagConstraintsGEN(logicLabelGridX,(logicLabelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),1,GridBagConstraints.NORTHWEST,GridBagConstraints.NONE);
+            GridBagConstraints logicLabelGBC = gridBagConstraintsGEN(logicLabelGridX,(logicLabelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY+1),1,GridBagConstraints.NORTHWEST,GridBagConstraints.NONE);
             transitionEditorPanel.add(logicLabel,logicLabelGBC);
+
+            JLabel actionLabel = new JLabel("Action Name:");
+
+            GridBagConstraints actionLabelGBC = gridBagConstraintsGEN(logicLabelGridX,(logicLabelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),1,GridBagConstraints.NORTHWEST,GridBagConstraints.NONE);
+            transitionEditorPanel.add(actionLabel,actionLabelGBC);
 
             //控制逻辑相关输入
             logicPanel = new JPanel();
@@ -528,20 +567,25 @@ if(_transitionView instanceof LogicalTransitionView) {
 
 //            logicPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(""));
 //            logicPanel.setLayout(new java.awt.GridLayout(1,0));
+
+            actionName =new JTextField(40);
+            actionName.setText(((LogicalTransitionView) _transitionView).getAction_name());
+            JPanel actionNamePanel=new JPanel();
+            actionNamePanel.add(actionName);
+
+            GridBagConstraints actionNamePanelGBC = gridBagConstraintsGEN(logicPanelGridX,( logicLabelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),3,GridBagConstraints.WEST,GridBagConstraints.BOTH);
+
             logicPanel.add(logicScrollPane);
+            GridBagConstraints logicPanelGBC = gridBagConstraintsGEN(logicPanelGridX,( logicPanelGridY +  servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),3,GridBagConstraints.WEST,GridBagConstraints.BOTH);
 
-
-            GridBagConstraints logicPanelGBC = gridBagConstraintsGEN(logicPanelGridX,(logicPanelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY),3,GridBagConstraints.WEST,GridBagConstraints.BOTH);
-
-
-//            logicPanelGridY = 3;
-
+//            logicPanelGridY = 3;\
+            transitionEditorPanel.add(actionNamePanel,actionNamePanelGBC);
             transitionEditorPanel.add(logicPanel,logicPanelGBC);
         }
 
 
         //priorityPanel布局
-        int priorityPanelGridX = 1, priorityPanelGridY = logicPanelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY + 1;
+        int priorityPanelGridX = 1, priorityPanelGridY = logicPanelGridY + servedrPanelGridY + editorGridY + rateTextFieldGridY + timingGridY + 3;
         GridBagConstraints priorityPanelGBC = gridBagConstraintsGEN(priorityPanelGridX,priorityPanelGridY,3,GridBagConstraints.CENTER,GridBagConstraints.NONE);
 
         transitionEditorPanel.add(priorityPanel, priorityPanelGBC);
@@ -853,6 +897,18 @@ if(_transitionView instanceof LogicalTransitionView) {
          }
       }
 
+      String newWeight=weightTextFeild.getText();
+      if(!(Double.parseDouble(newWeight)==weight))
+      {
+          _transitionView.set_weight(Double.parseDouble(newWeight));
+      }
+
+      String newGraphTime=GraphTimeTextFeild.getText();
+      if(!(GraphTime.equals(newGraphTime)))
+      {
+          _transitionView.setGraphTime(newGraphTime);
+      }
+
       if (timedRadioButton.isSelected() != timed) {
          _view.getHistoryManager().addEdit(
                  _transitionView.setTimed(!timed));
@@ -950,11 +1006,13 @@ if(_transitionView instanceof LogicalTransitionView) {
          }
       }
 
-      //按ok button，将逻辑公式写入到LogicTransitionView的属性中
+      //按ok button，将逻辑公式与变迁的actionname写入到LogicTransitionView的属性中
       if(_transitionView instanceof LogicalTransitionView){
           String logicText = logicExpressionText.getText();
+          String actionText=actionName.getText();
           //todo-Dj:公式正确性的检验
           ((LogicalTransitionView) _transitionView).setFormula(logicText);
+          ((LogicalTransitionView) _transitionView).setAction_name(actionText);
       }
       
       _transitionView.repaint();
@@ -978,6 +1036,8 @@ if(_transitionView instanceof LogicalTransitionView) {
     private javax.swing.JRadioButton immediateRadioButton;
     private javax.swing.JRadioButton infiniteServerRadioButton;
     private javax.swing.JTextField nameTextField;
+    private JTextField weightTextFeild;
+    private JTextField GraphTimeTextFeild;
     private javax.swing.JButton okButton;
     private javax.swing.JLabel priorityLabel;
     private javax.swing.JPanel priorityPanel;
@@ -995,6 +1055,7 @@ if(_transitionView instanceof LogicalTransitionView) {
     private javax.swing.JRadioButton singleServerRadioButton;
     private javax.swing.JRadioButton timedRadioButton;
     private JPanel logicPanel;
+    private JTextField actionName;
     private JTextArea logicExpressionText;
    // private JCheckBox constantRateCheckbox;
     //private JCheckBox functionalRateCheckbox;

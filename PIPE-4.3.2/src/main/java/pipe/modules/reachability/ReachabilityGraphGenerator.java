@@ -4,13 +4,9 @@ import java.awt.Checkbox;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedList;
+import java.util.*;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -21,30 +17,25 @@ import net.sourceforge.jpowergraph.Node;
 import net.sourceforge.jpowergraph.defaults.DefaultGraph;
 import net.sourceforge.jpowergraph.defaults.DefaultNode;
 import net.sourceforge.jpowergraph.defaults.TextEdge;
-import pipe.calculations.StateSpaceGenerator;
-import pipe.calculations.myTree;
+import pipe.calculations.*;
 import pipe.exceptions.MarkingNotIntegerException;
 import pipe.exceptions.TimelessTrapException;
 import pipe.exceptions.TreeTooBigException;
 import pipe.extensions.jpowergraph.*;
 import pipe.gui.ApplicationSettings;
-import pipe.gui.widgets.ButtonBar;
-import pipe.gui.widgets.EscapableDialog;
-import pipe.gui.widgets.GraphFrame;
-import pipe.gui.widgets.PetriNetChooserPanel;
-import pipe.gui.widgets.ResultsHTMLPane;
+import pipe.gui.widgets.*;
 import pipe.io.ImmediateAbortException;
 import pipe.io.IncorrectFileFormatException;
 import pipe.io.ReachabilityGraphFileHeader;
 import pipe.io.StateRecord;
 import pipe.io.TransitionRecord;
-import pipe.models.Transition;
 import pipe.modules.interfaces.IModule;
 import pipe.utilities.Expander;
 import pipe.utilities.writers.PNMLWriter;
 import pipe.views.MarkingView;
 import pipe.views.PetriNetView;
 import pipe.views.PlaceView;
+import pipe.views.LogicalTransitionView;
 
 /**
  * @author Matthew Worthington / Edwin Chung / Will Master
@@ -71,10 +62,18 @@ implements IModule
 
 	private static String dataLayerName;
 
+	private static Vector<Vector<String>> HazardousState=new Vector<Vector<String>>();
+	private static GraphHazardousFrame frame = new GraphHazardousFrame();
+
+	private static GraphFrame gframe=new GraphFrame();
+
+	//测试用
+	private PetriNetView pn;
 
 	public void start()
 	{
 		PetriNetView pnmlData = ApplicationSettings.getApplicationView().getCurrentPetriNetView();
+		pn=pnmlData;
 		// Check if this net is a CGSPN. If it is, then this
 		// module won't work with it and we must convert it.
 		if(pnmlData.getEnabledTokenClassNumber() > 1){
@@ -100,6 +99,54 @@ implements IModule
 
 		// 4 Add button's
 		contentPane.add(new ButtonBar("Generate Reachability/Coverability Graph", generateGraph,
+				guiDialog.getRootPane()));
+		contentPane.add(new ButtonBar("Add Hazardous State", AddHazardous,
+				guiDialog.getRootPane()));
+		contentPane.add(checkBox1);
+
+		// 5 Make window fit contents' preferred size
+		guiDialog.pack();
+
+		// 6 Move window to the middle of the screen
+		guiDialog.setLocationRelativeTo(null);
+
+		checkBox1.setState(false);
+		guiDialog.setModal(false);
+		guiDialog.setVisible(false);
+		guiDialog.setVisible(true);
+	}
+
+	//测试用
+	public void start(PetriNetView pnmlData)
+	{
+		pn=pnmlData;
+		// Check if this net is a CGSPN. If it is, then this
+		// module won't work with it and we must convert it.
+		if(pnmlData.getEnabledTokenClassNumber() > 1){
+			//if(pnmlData.getTokenViews().size() > 1)
+			Expander expander = new Expander(pnmlData);
+			pnmlData = expander.unfold();
+			JOptionPane.showMessageDialog(null, "This is CGSPN. The analysis will only apply to default color (black)",
+					"Information", JOptionPane.INFORMATION_MESSAGE);
+		}
+		// Build interface
+
+		// 1 Set layout
+		Container contentPane = guiDialog.getContentPane();
+		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.PAGE_AXIS));
+
+		// 2 Add file browser
+		sourceFilePanel = new PetriNetChooserPanel("Source net", pnmlData);
+		contentPane.add(sourceFilePanel);
+
+		// 3 Add results pane
+		results = new ResultsHTMLPane(pnmlData.getPNMLName());
+		contentPane.add(results);
+
+		// 4 Add button's
+		contentPane.add(new ButtonBar("Generate Reachability/Coverability Graph", generateGraph,
+				guiDialog.getRootPane()));
+		contentPane.add(new ButtonBar("Add Hazardous State", AddHazardous,
 				guiDialog.getRootPane()));
 		contentPane.add(checkBox1);
 
@@ -129,11 +176,13 @@ implements IModule
 			double totaltime;
 
 			//data layer corrected, so that we could have the correct calculation
-			PetriNetView sourcePetriNetView = ApplicationSettings.getApplicationView().getCurrentPetriNetView();//sourceFilePanel.getDataLayer();
+			//PetriNetView sourcePetriNetView = ApplicationSettings.getApplicationView().getCurrentPetriNetView();//sourceFilePanel.getDataLayer();
+			PetriNetView sourcePetriNetView=pn;
 			dataLayerName = sourcePetriNetView.getPNMLName();
 
 			// This will be used to store the reachability graph data
 			File reachabilityGraph = new File("results.rg");
+			File fullreachabilityGraph=new File("temp.rg");
 
 			// This will be used to store the steady state distribution
 			String s = "<h2>Reachability/Coverability Graph Results</h2>";
@@ -162,7 +211,11 @@ implements IModule
 					boolean generateCoverability = false;
 					try
 					{
+						//生成可达图
+						StateSpaceGenerator.generate2(sourcePetriNetView, fullreachabilityGraph);
 						StateSpaceGenerator.generate(sourcePetriNetView, reachabilityGraph);
+
+
 					}
 					catch(OutOfMemoryError e)
 					{
@@ -191,7 +244,8 @@ implements IModule
 
 					gfinished = new Date().getTime();
 					System.gc();
-					generateGraph(reachabilityGraph, sourcePetriNetView,
+					//这里生成包含可达图的窗体
+					generateGraph(reachabilityGraph,fullreachabilityGraph, sourcePetriNetView,
 							generateCoverability);
 					allfinished = new Date().getTime();
 					graphtime = (gfinished - start) / 1000.0;
@@ -271,25 +325,86 @@ implements IModule
 					{
 						reachabilityGraph.delete();
 					}
+					if(fullreachabilityGraph.exists())
+					{
+						fullreachabilityGraph.delete();
+					}
 				}
 			}
 			results.setText(s);
 		}
 	};
 
+    private final ActionListener AddHazardous =new ActionListener() {
+		public void actionPerformed(ActionEvent e) {
+			//PetriNetView sourcePetriNetView = ApplicationSettings.getApplicationView().getCurrentPetriNetView();
+			PetriNetView sourcePetriNetView=pn;
+			frame.constructGraphHazardousFrame(sourcePetriNetView);
 
+		}
+	};
 	public String getName()
 	{
 		return MODULE_NAME;
 	}
 
-
-	private void generateGraph(File rgFile, PetriNetView dataLayer,
+    //生成包含可达图的窗体,这里将可达图拓展
+	private void generateGraph(File rgFile,File tempFile, PetriNetView dataLayer,
 			boolean coverabilityGraph)
 					throws Exception
 					{
+						//包含可达图点与边的变量
 		DefaultGraph graph = createGraph(rgFile, dataLayer, coverabilityGraph);
-		GraphFrame frame = new GraphFrame();
+		DefaultGraph fullgraph = createGraph(tempFile, dataLayer, coverabilityGraph);
+
+		ExtensiveReachabilityGraph exgraph=new ExtensiveReachabilityGraph(dataLayer,fullgraph,graph);
+
+		DefaultGraph ex=exgraph.ConstructExtensiveReachabilityGraph();
+
+		//验证可达图是否正确
+//		List<Node> nodes=ex.getAllNodes();
+//		HashMap<String,String> a=new HashMap<String, String>();
+//		for(int i=0;i<nodes.size();i++)
+//		{
+//			String temp=((PIPENode)nodes.get(i)).getMarking();
+//			String[] tempmarking=temp.replaceAll("[{}]","").trim().split("[,]");
+//			for(int j=2;j<tempmarking.length-1;j++)
+//			{
+//				String s=tempmarking[j];
+//				tempmarking[j]=tempmarking[j+1];
+//				tempmarking[j+1]=s;
+//			}
+//			String resmarking="(";
+//			for(int j=0;j<tempmarking.length;j++)
+//			{
+//				resmarking+=(tempmarking[j]+",");
+//			}
+//			resmarking=resmarking.substring(0,resmarking.length()-1)+")";
+//			a.put(resmarking.replace(" ",""),((PIPENode)nodes.get(i)).getLabel());
+//		}
+//		HashMap<String,String> b=new HashMap<String, String>();
+//		FileInputStream fis=new FileInputStream("test.txt");
+//		InputStreamReader isr=new InputStreamReader(fis);
+//		BufferedReader br=new BufferedReader(isr);
+//		String linetext=null;
+//		while ((linetext=br.readLine())!=null)
+//		{
+//			String[] temp=linetext.replace(";","").split(":");
+//			b.put(temp[1],temp[0]);
+//		}
+//
+//		ArrayList<String[]> c=new ArrayList<String[]>();
+//		Iterator iter=a.entrySet().iterator();
+//		while (iter.hasNext())
+//		{
+//			String[] temp=new String[2];
+//			HashMap.Entry entry = (HashMap.Entry) iter.next();
+//			temp[0]=(String) entry.getValue();
+//			temp[1]=b.get((String) entry.getKey());
+//			c.add(temp);
+//		}
+
+
 		PlaceView[] placeView = dataLayer.places();
 		String legend = "";
 		if(placeView.length > 0)
@@ -301,19 +416,69 @@ implements IModule
 			legend += ", " + placeView[i].getName();
 		}
 		legend += "}";
-		frame.constructGraphFrame(graph, legend);
-		frame.toFront();
-		frame.setIconImage((
+		//所有的节点与边被包含在了graph中,普通节点类型为PIPEVanishingState
+		gframe.constructGraphFrame(ex, legend);
+		HCAFrame hcaFrame=new HCAFrame(ex);
+		hcaFrame.constructHCAtable();
+
+		//计算路径
+		Calculate_HCA cal=new Calculate_HCA(ex,hcaFrame.getHCAsses(),dataLayer);
+		cal.getHcaRoad();
+		//ArrayList<ArrayList<Edge>> respath=cal.getRes_path();
+
+		//这里进行模拟
+		Simulation_HCA sim=new Simulation_HCA(ex,dataLayer,hcaFrame.getHCAsses());
+		sim.Simulation();
+
+
+		gframe.toFront();
+		gframe.setIconImage((
 				new ImageIcon(Thread.currentThread().getContextClassLoader().
 						getResource(ApplicationSettings.getImagePath() + "icon.png")).getImage()));
-		frame.setTitle(dataLayerName);
+		gframe.setTitle(dataLayerName);
 					}
 
+
+	private static ArrayList<String> DetectHazardous(String mark)
+	{
+		ArrayList<String> Hazards=new ArrayList<String>();
+		for(int i=0;i<HazardousState.size();i++)
+		{
+			boolean flag=true;
+			String markmode=HazardousState.elementAt(i).elementAt(2);
+			if(mark.length()==markmode.length()) {
+				for(int j =0;j<mark.length();j++) {
+					if(mark.charAt(j)!=markmode.charAt(j)&&markmode.charAt(j)!='*')
+					{
+						flag=false;
+						break;
+					}
+				}
+			}
+			if(flag)
+			Hazards.add(HazardousState.elementAt(i).elementAt(0));
+		}
+		return Hazards;
+	}
 
 	private static DefaultGraph createGraph(File rgFile, PetriNetView dataLayer,
 			boolean coverabilityGraph) throws IOException
 			{
+				//包含可达图点与边的变量，在这里加入Harazardous state
 		DefaultGraph graph = new DefaultGraph();
+
+//		//label转为paper上的以便debug
+//				//b为Marking->Label
+//				HashMap<String,String> b=new HashMap<String, String>();
+//		FileInputStream fis=new FileInputStream("test.txt");
+//		InputStreamReader isr=new InputStreamReader(fis);
+//		BufferedReader br=new BufferedReader(isr);
+//		String linetext=null;
+//		while ((linetext=br.readLine())!=null)
+//		{
+//			String[] temp=linetext.replace(";","").split(":");
+//			b.put(temp[1],temp[0]);
+//		}
 
 		ReachabilityGraphFileHeader header = new ReachabilityGraphFileHeader();
 		RandomAccessFile reachabilityFile;
@@ -334,7 +499,7 @@ implements IModule
 			return graph;
 		}
 
-		if((header.getNumStates() + header.getNumTransitions()) > 400)
+		if((header.getNumStates() + header.getNumTransitions()) > 4000)
 		{
 			throw new IOException("There are " + header.getNumStates() + " states with "
 					+ header.getNumTransitions() + " arcs. The graph is too big to be displayed properly.");
@@ -348,11 +513,13 @@ implements IModule
 		String label;
 		String marking;
 
+		HazardousState=frame.getData();
 		int stateArraySize = header.getStateArraySize();
 		StateRecord record = new StateRecord();
 		record.read1(stateArraySize, reachabilityFile);
-		label = "S0";
+		label = "M0";
 		marking = record.getMarkingString();
+		//label=b.get(marking);
 		if(record.getTangible())
 		{
 			if(checkBox1.getState())
@@ -384,22 +551,28 @@ implements IModule
 			}
 		}
 
+		//这里node添加时加入新的类，弄个方形的
 		for(int count = 1; count < header.getNumStates(); count++)
 		{
 			record.read1(stateArraySize, reachabilityFile);
-			label = "S" + count;
+			label = "M" + count;
 			marking = record.getMarkingString();
-			if(record.getTangible())
-			{
-				nodes.add(coverabilityGraph
-						? new PIPEState(label, marking)
-				: new PIPETangibleState(label, marking));
+			//label=b.get(marking);
+			//若该节点的标价满足某个Hazard条件，则添加为HazardousState
+			ArrayList<String> hazards=DetectHazardous(marking);
+			if(hazards.size()!=0) {
+				nodes.add(new PIPEHazardousState(label,marking,hazards));
 			}
-			else
-			{
-				nodes.add(coverabilityGraph
-						? new PIPEState(label, marking)
-				: new PIPEVanishingState(label, marking));
+			else {
+				if (record.getTangible()) {
+					nodes.add(coverabilityGraph
+							? new PIPEState(label, marking)
+							: new PIPETangibleState(label, marking));
+				} else {
+					nodes.add(coverabilityGraph
+							? new PIPEState(label, marking)
+							: new PIPEVanishingState(label, marking));
+				}
 			}
 		}
 
@@ -407,6 +580,176 @@ implements IModule
 		int numberTransitions = header.getNumTransitions();
 		for(int transitionCounter = 0; transitionCounter < numberTransitions;
 				transitionCounter++)
+		{
+			TransitionRecord transitions = new TransitionRecord();
+			transitions.read1(reachabilityFile);
+
+			int from = transitions.getFromState();
+			int to = transitions.getToState();
+			if(from != to)
+			{
+				if(dataLayer.getTransition(transitions.getTransitionNo()) instanceof LogicalTransitionView)
+					edges.add(new PIPECATextEdge(
+							(DefaultNode) (nodes.get(from)),
+							(DefaultNode) (nodes.get(to)),
+							dataLayer.getTransitionName(transitions.getTransitionNo()),((LogicalTransitionView) dataLayer.getTransition(transitions.getTransitionNo())).getAction_name()));
+				else
+				edges.add(new TextEdge(
+						(DefaultNode) (nodes.get(from)),
+						(DefaultNode) (nodes.get(to)),
+						dataLayer.getTransitionName(transitions.getTransitionNo())));
+			}
+			else
+			{
+				if(loopEdges.contains(nodes.get(from)))
+				{
+					int i = loopEdges.indexOf(nodes.get(from));
+
+					loopEdgesTransitions.set(i,
+							loopEdgesTransitions.get(i) + ", " +
+									dataLayer.getTransitionName(transitions.getTransitionNo()));
+				}
+				else
+				{
+					loopEdges.add(nodes.get(from));
+					loopEdgesTransitions.add(
+							dataLayer.getTransitionName(transitions.getTransitionNo()));
+				}
+			}
+		}
+
+		for(int i = 0; i < loopEdges.size(); i++)
+		{
+			edges.add(new PIPELoopWithTextEdge((DefaultNode) (loopEdges.get(i)),
+					(String) (loopEdgesTransitions.get(i))));
+		}
+
+		graph.addElements(nodes, edges);
+
+		reachabilityFile.close();
+
+		return graph;
+			}
+
+	private static DefaultGraph createExtensiveGraph(File rgFile, PetriNetView dataLayer,
+											boolean coverabilityGraph) throws IOException
+	{
+		//包含可达图点与边的变量，在这里加入Harazardous state
+		DefaultGraph graph = new DefaultGraph();
+
+//		//label转为paper上的以便debug
+//		//b为Marking->Label
+//		HashMap<String,String> b=new HashMap<String, String>();
+//		FileInputStream fis=new FileInputStream("test.txt");
+//		InputStreamReader isr=new InputStreamReader(fis);
+//		BufferedReader br=new BufferedReader(isr);
+//		String linetext=null;
+//		while ((linetext=br.readLine())!=null)
+//		{
+//			String[] temp=linetext.replace(";","").split(":");
+//			b.put(temp[1],temp[0]);
+//		}
+		ReachabilityGraphFileHeader header = new ReachabilityGraphFileHeader();
+		RandomAccessFile reachabilityFile;
+
+		try
+		{
+			reachabilityFile = new RandomAccessFile(rgFile, "r");
+			header.read(reachabilityFile);
+		}
+		catch(IncorrectFileFormatException e1)
+		{
+			System.err.println("createGraph: " +
+					"incorrect file format on state space file");
+			return graph;
+		}
+		catch(IOException e1)
+		{
+			System.err.println("createGraph: unable to read header file");
+			return graph;
+		}
+
+		if((header.getNumStates() + header.getNumTransitions()) > 400)
+		{
+			throw new IOException("There are " + header.getNumStates() + " states with "
+					+ header.getNumTransitions() + " arcs. The graph is too big to be displayed properly.");
+		}
+
+		//由于编译时报错：某些输入文件使用了未经检查或不安全的操作。将ArrayList nodes之类改为ArrayList<E> node
+		ArrayList<Node> nodes = new ArrayList<Node>();
+		ArrayList<Edge> edges = new ArrayList<Edge>();
+		ArrayList<Node> loopEdges = new ArrayList<Node>();
+		ArrayList<String> loopEdgesTransitions = new ArrayList<String>();
+		String label;
+		String marking;
+
+		HazardousState=frame.getData();
+		int stateArraySize = header.getStateArraySize();
+		StateRecord record = new StateRecord();
+		record.read1(stateArraySize, reachabilityFile);
+		label = "M0";
+		marking = record.getMarkingString();
+		//label=b.get(marking);
+		if(record.getTangible())
+		{
+			if(checkBox1.getState())
+			{
+				nodes.add(coverabilityGraph
+						? new PIPEInitialState(label, marking)
+						: new PIPEInitialTangibleState(label, marking));
+			}
+			else
+			{
+				nodes.add(coverabilityGraph
+						? new PIPEState(label, marking)
+						: new PIPETangibleState(label, marking));
+			}
+		}
+		else
+		{
+			if(checkBox1.getState())
+			{
+				nodes.add(coverabilityGraph
+						? new PIPEInitialState(label, marking)
+						: new PIPEInitialVanishingState(label, marking));
+			}
+			else
+			{
+				nodes.add(coverabilityGraph
+						? new PIPEState(label, marking)
+						: new PIPEVanishingState(label, marking));
+			}
+		}
+
+		//这里node添加时加入新的类，弄个方形的
+		for(int count = 1; count < header.getNumStates(); count++)
+		{
+			record.read1(stateArraySize, reachabilityFile);
+			label = "M" + count;
+			marking = record.getMarkingString();
+			//label=b.get(marking);
+			//若该节点的标价满足某个Hazard条件，则添加为HazardousState
+			ArrayList<String> hazards=DetectHazardous(marking);
+			if(hazards.size()!=0) {
+				nodes.add(new PIPEHazardousState(label,marking,hazards));
+			}
+			else {
+				if (record.getTangible()) {
+					nodes.add(coverabilityGraph
+							? new PIPEState(label, marking)
+							: new PIPETangibleState(label, marking));
+				} else {
+					nodes.add(coverabilityGraph
+							? new PIPEState(label, marking)
+							: new PIPEVanishingState(label, marking));
+				}
+			}
+		}
+
+		reachabilityFile.seek(header.getOffsetToTransitions());
+		int numberTransitions = header.getNumTransitions();
+		for(int transitionCounter = 0; transitionCounter < numberTransitions;
+			transitionCounter++)
 		{
 			TransitionRecord transitions = new TransitionRecord();
 			transitions.read1(reachabilityFile);
@@ -448,5 +791,5 @@ implements IModule
 		graph.addElements(nodes, edges);
 
 		return graph;
-			}
+	}
 }

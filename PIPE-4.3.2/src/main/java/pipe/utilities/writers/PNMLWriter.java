@@ -244,7 +244,7 @@ public class PNMLWriter
             Double positionXInput = inputPlaceView.getPositionXObject();
             Double positionYInput = inputPlaceView.getPositionYObject();
             String idInput = inputPlaceView.getId();
-            String nameInput = inputPlaceView.getName();
+            String nameInput = inputPlaceView.getname();
             Double nameOffsetXInput = inputPlaceView.getNameOffsetXObject();
             Double nameOffsetYInput = inputPlaceView.getNameOffsetYObject();
             LinkedList<MarkingView> initialMarkingViewInput = inputPlaceView.getCurrentMarkingObject();
@@ -343,10 +343,14 @@ public class PNMLWriter
             String idInput = inputTransitionView.getId();
             String nameInput = inputTransitionView.getName();
             String logical_formula="";
+            String actionName="";
             String logical="false";
+            String weight=String.valueOf(inputTransitionView.get_weight());
+            String graphTime=inputTransitionView.getGraphTime();
             //double aRate = inputTransitionView.getRate();
             if(inputTransitionView instanceof LogicalTransitionView) {
                  logical_formula = ((LogicalTransitionView) inputTransitionView).getFormula();
+                 actionName=((LogicalTransitionView) inputTransitionView).getAction_name();;
                  logical="true";
             }
 
@@ -362,6 +366,7 @@ public class PNMLWriter
             int orientation = inputTransitionView.getAngle();
             int priority = inputTransitionView.getPriority();
             String rateParameter = "";
+
             if(inputTransitionView.getRateParameter() != null)
             {
                 rateParameter = inputTransitionView.getRateParameter().getName();
@@ -384,6 +389,9 @@ public class PNMLWriter
             transitionElement.setAttribute("timed", String.valueOf(timedTrans));
             transitionElement.setAttribute("logical",logical);
             transitionElement.setAttribute("logical_formula",logical_formula);
+            transitionElement.setAttribute("actionName",actionName);
+            transitionElement.setAttribute("weight",weight);
+            transitionElement.setAttribute("graphTime",graphTime);
             transitionElement.setAttribute("infiniteServer",
                                            String.valueOf(infiniteServer));
             transitionElement.setAttribute("angle", String.valueOf(orientation));

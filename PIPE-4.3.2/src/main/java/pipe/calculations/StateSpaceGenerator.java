@@ -57,7 +57,7 @@ public class StateSpaceGenerator {
 	private static final Stack transitions = new Stack();
 	private static boolean[] enabledTransitions;
 	private static int[][] _incidenceMatrixBeforeFire;
-    //生成可达图的方法
+    //生成可达图文件的方法
 	public static void generate(PetriNetView pnmlData, File reachGraph)
 			throws OutOfMemoryError, ImmediateAbortException, IOException, MarkingNotIntegerException {
 
@@ -127,7 +127,7 @@ public class StateSpaceGenerator {
 
 		currentState = new MarkingState(currentMarking, numStates, isTangible(
 				pnmlData, currentMarking));
-		currentState.setPlaceMarking(currentMarking.getPlaceMarking());
+		currentState.setPlaceMarking(currentMarking.getPlaceMarking(pnmlData));
 		numStates++;
 		statesQueue.enqueue(currentState);
 		addExplored(currentState, exploredStates, esoFile, true);
@@ -136,13 +136,14 @@ public class StateSpaceGenerator {
 
 			s = (MarkingState) statesQueue.dequeue();
 
+			//调用fire后，tansuccessor为当前状态s所有可达状态
 			numtransitionsfired += fire(pnmlData, s, tansuccessor);
 			while (!tansuccessor.isEmpty()) {
 				sprime = (State) tansuccessor.pop();
 				if (!explored(sprime, exploredStates)) {
 					currentState = new MarkingState(sprime, numStates,
 							isTangible(pnmlData, sprime));
-					currentState.setPlaceMarking(sprime.getPlaceMarking());
+					currentState.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
 					numStates++;
 					statesQueue.enqueue(currentState);
 					addExplored(currentState, exploredStates, esoFile, true);
@@ -153,7 +154,7 @@ public class StateSpaceGenerator {
 								"Could not identify previously explored tangible state.");
 					}
 					currentState = new MarkingState(sprime, id);
-					currentState.setPlaceMarking(sprime.getPlaceMarking());
+					currentState.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
 				}
 				numTransitions += transition(currentState,
 						rate(pnmlData, s, sprime), localarcs);
@@ -207,9 +208,161 @@ public class StateSpaceGenerator {
 				System.err.println("\nCould not delete intermediate file.");
 			}
 		}
-		pnmlData.restorePreviousMarking();
+		pnmlData.restorePreviousMarking(pnmlData);
 	}
+	//用于生成extensive Reachability Graph的函数，改变了fire规则
+	public static void generate2(PetriNetView pnmlData, File reachGraph)
+			throws OutOfMemoryError, ImmediateAbortException, IOException, MarkingNotIntegerException {
 
+		// back up place markings
+		//pnmlData.backUpPlaceViewsMarking();
+		pnmlData.setFunctionalExpressionRelatedPlaces();
+		pnmlData.storeCurrentMarking();
+
+		LinkedList<MarkingView>[] markings = pnmlData.getCurrentMarkingVector();
+		int[] marking = new int[markings.length];
+		for (int i = 0; i < markings.length; i++) {
+			marking[i] = markings[i].getFirst().getCurrentMarking();
+		}
+		State currentMarking = new State(marking);
+		int statearraysize = currentMarking.getState().length;
+
+		Queue statesQueue = new Queue();// States waiting to be explored
+		Stack tansuccessor = new Stack();
+		// Objects for temporarily storing states that haven't been identified
+		// as
+		// tangible or vanishing
+		State sprime = null;
+		MarkingState currentState = null; // Used in some loops
+		MarkingState s = null; // Used in some loops
+
+		// A record of all explored states. The actual states themselves are not
+		// stored here. Instead, just their two hashcodes are used to represent
+		// them, one as a key to the hashtable row, the other as the entry in a
+		// list at each hashtable row.
+		LinkedList[] exploredStates = new LinkedList[NUMHASHROWS];
+
+		// This list is used to temporarily store details of the arcs between
+		// states on the reachability graph.
+		LinkedList localarcs = new LinkedList();
+
+		// Counters used for creating the reachability graph file
+		int numStates = 0;
+		int numTransitions = 0;
+		int numtransitionsfired = 0;
+
+		// Temporary files for storing tangible states and the transitions
+		// between
+		// them. They are later combined into one file by the createRGFile
+		// method.
+		RandomAccessFile outputFile;
+		RandomAccessFile esoFile;
+		File intermediate = new File("graph.irg");
+
+		if (intermediate.exists()) {
+			if (!intermediate.delete()) {
+				System.err.println("Could not delete intermediate file.");
+			}
+		}
+
+		try {
+			outputFile = new RandomAccessFile(intermediate, "rw");
+			esoFile = new RandomAccessFile(reachGraph, "rw");
+			// Write a blank file header as a place holder for later
+			ReachabilityGraphFileHeader header = new ReachabilityGraphFileHeader();
+			header.write(esoFile);
+		} catch (IOException e) {
+			System.out.println("Could not create intermediate files.");
+			return;
+		}
+
+		pnmlData.createMatrixes();
+
+		currentState = new MarkingState(currentMarking, numStates, isTangible(
+				pnmlData, currentMarking));
+		currentState.setPlaceMarking(currentMarking.getPlaceMarking(pnmlData));
+		numStates++;
+		statesQueue.enqueue(currentState);
+		addExplored(currentState, exploredStates, esoFile, true);
+
+		while (!statesQueue.isEmpty()) {
+
+			s = (MarkingState) statesQueue.dequeue();
+
+			//调用fire2后，tansuccessor为当前状态s所有可达状态
+			numtransitionsfired += fire2(pnmlData, s, tansuccessor);
+			while (!tansuccessor.isEmpty()) {
+				sprime = (State) tansuccessor.pop();
+				if (!explored(sprime, exploredStates)) {
+					currentState = new MarkingState(sprime, numStates,
+							isTangible(pnmlData, sprime));
+					currentState.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
+					numStates++;
+					statesQueue.enqueue(currentState);
+					addExplored(currentState, exploredStates, esoFile, true);
+				} else {
+					int id = identifyState(sprime, exploredStates);
+					if (id == -1) {
+						throw new ImmediateAbortException(
+								"Could not identify previously explored tangible state.");
+					}
+					currentState = new MarkingState(sprime, id);
+					currentState.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
+				}
+				numTransitions += transition(currentState,
+						rate(pnmlData, s, sprime), localarcs);
+//				for (int index = 0; index < pnmlData.numberOfTransitions(); index++) {
+//					if (enabledTransitions[index]) {
+//						setTokenAfterFiringTransition(index);
+//					}
+//				}
+			}
+			// Write all the arcs for the reachability graph to file
+			writeTransitions(s, localarcs, outputFile, true);
+			// Clear the list so can start again with the next set of arcs
+			localarcs.clear();
+
+			// REVISAR-LIMITS
+			if (numTransitions > Constants.MAX_NODES) {
+				// System.out.println("numTransitions: " + numTransitions);
+				throw new OutOfMemoryError("The net generates in excess of "
+						+ Constants.MAX_NODES + " states");
+			}
+		}
+		try {
+			outputFile.close();
+		} catch (IOException e1) {
+			System.err.println("\nCould not close intermediate file.");
+		}
+		System.out.println("\nGenerate Ends, " + numStates
+				+ " states found with " + numTransitions + " arcs.");
+		createRGFile(intermediate, esoFile, statearraysize, numStates,
+				numTransitions, true);
+
+		if (DEBUG) {
+			/* Write a csv file indicating the Hashtable distribution */
+			FileWriter htdist = new FileWriter("HashTableDist.csv");
+			for (int row = 0; row < NUMHASHROWS; row++) {
+				htdist.write(Integer.toString(row) + ",");
+				if (exploredStates[row] == null) {
+					htdist.write("0\n");
+				} else {
+					htdist.write(Integer.toString(exploredStates[row].size())
+							+ "\n");
+				}
+			}
+			htdist.close();
+			System.out
+					.println("Finished writing hashtable distribution to file.");
+		}
+
+		if (intermediate.exists()) {
+			if (!intermediate.delete()) {
+				System.err.println("\nCould not delete intermediate file.");
+			}
+		}
+		pnmlData.restorePreviousMarking(pnmlData);
+	}
 	/**
 	 * generate() This static method generates the statespace from a GSPN It
 	 * uses a hashtable so that it can quickly check whether a state has already
@@ -365,7 +518,7 @@ public class StateSpaceGenerator {
 						if (!explored(vprime, exploredStates)) {
 							tangible = new MarkingState(vprime,
 									numtangiblestates);
-							tangible.setPlaceMarking(vprime.getPlaceMarking());
+							tangible.setPlaceMarking(vprime.getPlaceMarking(pnmlData));
 							tangibleStates.enqueue(tangible);
 							addExplored(tangible, exploredStates, esoFile,
 									false);
@@ -376,7 +529,7 @@ public class StateSpaceGenerator {
 						if (pprime > epsilon) {
 							VanishingState vsp =new VanishingState(vprime,
 									pprime);
-							vsp.setPlaceMarking(vprime.getPlaceMarking());
+							vsp.setPlaceMarking(vprime.getPlaceMarking(pnmlData));
 							vanishingStates.push(vsp);
 						}
 					}
@@ -425,7 +578,7 @@ public class StateSpaceGenerator {
 					if (!explored(sprime, exploredStates)) {
 						tangible = new MarkingState(sprime, numtangiblestates);
 						
-						tangible.setPlaceMarking(sprime.getPlaceMarking());
+						tangible.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
 						tangibleStates.enqueue(tangible);
 						addExplored(tangible, exploredStates, esoFile, false);
 						numtangiblestates++;
@@ -437,7 +590,7 @@ public class StateSpaceGenerator {
 											+ "previously explored tangible state.");
 						}
 						tangible = new MarkingState(sprime, id);
-						tangible.setPlaceMarking(sprime.getPlaceMarking());
+						tangible.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
 					}
 					
 					
@@ -448,7 +601,7 @@ public class StateSpaceGenerator {
 					int attempts = 0;
 					VanishingState vs = new VanishingState(sprime, rate(
 							pnmlData, s, sprime));
-					vs.setPlaceMarking(sprime.getPlaceMarking());
+					vs.setPlaceMarking(sprime.getPlaceMarking(pnmlData));
 					vanishingStates.push(vs);
 					while ((!vanishingStates.isEmpty())
 							&& (attempts != MAX_TRIES)) {
@@ -479,7 +632,7 @@ public class StateSpaceGenerator {
 								if (!explored(vprime, exploredStates)) {
 									tangible = new MarkingState(vprime,
 											numtangiblestates);
-									tangible.setPlaceMarking(vprime.getPlaceMarking());
+									tangible.setPlaceMarking(vprime.getPlaceMarking(pnmlData));
 									tangibleStates.enqueue(tangible);
 									addExplored(tangible, exploredStates,
 											esoFile, false);
@@ -494,7 +647,7 @@ public class StateSpaceGenerator {
 														+ "state.");
 									}
 									tangible = new MarkingState(vprime, id);
-									tangible.setPlaceMarking(vprime.getPlaceMarking());
+									tangible.setPlaceMarking(vprime.getPlaceMarking(pnmlData));
 								}
 								numtransitions += transition(tangible, pprime,
 										localarcs);
@@ -562,6 +715,9 @@ public class StateSpaceGenerator {
 		}
 		pnmlData.restorePlaceViewsMarking();
 	}
+
+
+
 	
 	/**
 	 * isTangible() Tests whether the state passed as an argument is tangible or
@@ -673,6 +829,43 @@ public class StateSpaceGenerator {
 		return transitionsfired;
 	}
 
+	//extensive Reachability Graph修改规则后的fire
+	private static int fire2(PetriNetView pnmlData, State vs, Stack succ) throws MarkingNotIntegerException {
+		int transCount = pnmlData.numberOfTransitions();
+
+		int transitionsfired = 0;
+		int[] newstate = null;
+
+		LinkedList<MarkingView>[] state = new LinkedList[vs.getState().length];
+		for (int i = 0; i < vs.getState().length; i++) {
+			LinkedList<MarkingView> mlist = new LinkedList<MarkingView>();
+			MarkingView m = new MarkingView(
+					pnmlData.getTokenViews().getFirst(), vs.getState()[i]);
+			mlist.add(m);
+			state[i] = mlist;
+		}
+		pnmlData.setCurrentMarkingVector(vs.getState());
+		//boolean[] enabledTransitions = pnmlData.areTransitionsEnabled(state);
+		enabledTransitions = pnmlData.areTransitionsEnabled2(state);
+		for (int index = 0; index < transCount; index++) {
+			if (enabledTransitions[index]) {
+
+				pnmlData.setCurrentMarkingVector(vs.getState());
+
+				newstate = fireTransition(pnmlData, vs.getState(), index);
+				State s = new State(newstate);
+				s.setPlaceMarking(pnmlData.getCurrentMarkingVector());
+				succ.push(s);
+
+
+				pnmlData.setCurrentMarkingVector(vs.getState());
+				transitionsfired++;
+				transitions.push(new Integer(index));
+			}
+		}
+		return transitionsfired;
+	}
+
 	/**
 	 * fireFirstEnabledTransition() Determines the state resulting from firing
 	 * enabled transitions in the state passed as an argument
@@ -763,13 +956,11 @@ public class StateSpaceGenerator {
 		// Create marking array to return
 		int[] newmarking = new int[marking.length];
 
-        //这里完全是普通的Petri网，需要修改
 		if(tr instanceof LogicalTransitionView)
 		{
             Matrix VF=((LogicalTransitionView)tr).getVCA();
             int col=((LogicalTransitionView)tr).getVCA_fire_colum();
 			for (int count = 0; count < marking.length; count++) {
-				//这里还需修改,计算时VCA到VF需要保证库所与变迁相连的弧不为CA,这里直接引用了VF
 				CMinusValue = CMinus[count][transIndex];
 				CPlusValue = CPlus[count][transIndex];
 				VFValue=VF.get(count,col);
@@ -789,16 +980,17 @@ public class StateSpaceGenerator {
 			}
 		}
 			
-		setTokenAfterFiringTransition(transIndex);
+		setTokenAfterFiringTransition(transIndex,pnmlData);
 		return newmarking;
 	}
-	
-	
 
-	public static void setTokenAfterFiringTransition(int transitionId) {
 
-		PetriNetView dataLayer = ApplicationSettings.getApplicationView()
-				.getCurrentPetriNetView();
+
+	public static void setTokenAfterFiringTransition(int transitionId,PetriNetView pn) {
+
+		//PetriNetView dataLayer = ApplicationSettings.getApplicationView()
+		//		.getCurrentPetriNetView();
+		PetriNetView dataLayer=pn;
 		ArrayList<TransitionView> trans = dataLayer.getTransitionsArrayList();
 		TransitionView tran = trans.get(transitionId);
 		Iterator to = tran.getConnectToIterator();

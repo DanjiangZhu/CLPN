@@ -73,6 +73,9 @@ public class GraphFrame extends JFrame
         jGraphPane.setNodePainter(PIPEVanishingState.class,
                                   PIPEVanishingState.getShapeNodePainter());
 
+        jGraphPane.setNodePainter(PIPEHazardousState.class,
+                                  PIPEHazardousState.getShapeNodePainter());
+
         jGraphPane.setNodePainter(PIPEInitialVanishingState.class,
                                   PIPEInitialVanishingState.getShapeNodePainter());
 
@@ -91,12 +94,23 @@ public class GraphFrame extends JFrame
                                   new PIPELineWithTextEdgePainter(JPowerGraphColor.BLACK,
                                                                   JPowerGraphColor.GRAY, false));
 
+        jGraphPane.setEdgePainter(PIPECATextEdge.class,
+                new PIPELineWithTextEdgePainter(JPowerGraphColor.BLACK,
+                        JPowerGraphColor.GRAY, false));
+
         jGraphPane.setDefaultEdgePainter(new LineEdgePainter(JPowerGraphColor.BLACK,
                                                              JPowerGraphColor.GRAY, false));
 
         jGraphPane.setEdgePainter(PIPELoopWithTextEdge.class,
                                   new PIPELoopWithTextEdgePainter(JPowerGraphColor.GRAY,
                                                                   JPowerGraphColor.GRAY, LoopEdgePainter.RECTANGULAR));
+
+        jGraphPane.setEdgePainter(PIPEFailureTextEdge.class,
+                new LineEdgePainter(JPowerGraphColor.RED,
+                        JPowerGraphColor.RED, true));
+
+
+
 
         jGraphPane.setAntialias(true);
 

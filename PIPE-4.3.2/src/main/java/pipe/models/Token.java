@@ -24,6 +24,8 @@ public class Token extends Observable implements Serializable
     private Matrix _forwardsIncidenceMatrix = null;
     private Matrix _backwardsIncidenceMatrix = null;
     private Matrix _inhibitionMatrix = null;
+    private Matrix _VirtualArcMatrix = null;
+
 
     public Token()
     {
@@ -214,6 +216,19 @@ public class Token extends Observable implements Serializable
         this._backwardsIncidenceMatrix = backwardsIncidenceMatrix;
     }
 
+    public  Matrix getVirtualArcMatrix(){return _VirtualArcMatrix;}
+    public int[][] getVirtualArcMatrix(ArrayList<VirtualArcView> ArrayView,
+                                       ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
+    {
+        if(_VirtualArcMatrix == null || _VirtualArcMatrix.matrixChanged)
+        {
+            createVirtualArcMatrix(ArrayView, transitionsArray,
+                    placesArray);
+        }
+        return (_VirtualArcMatrix != null ? _VirtualArcMatrix.getArrayCopy()
+                : null);
+    }
+
     public Matrix getInhibitionMatrix()
     {
         return _inhibitionMatrix;
@@ -337,10 +352,9 @@ public class Token extends Observable implements Serializable
                                         		marking=1;
                                         	}
                                         	if(isTransitionInfiniteServer){
-                                        		
                                         		_backwardsIncidenceMatrix.set(placeNo, transitionNo, marking*enablingDegree);
                                         	}else{
-                                                //Arc不能为FR
+                                                //Arc不能为FR，这里修改了定义
                                                 if(!(transitionView instanceof LogicalTransitionView) && !(arcView.getType().equals("virtual")))
                                         		_backwardsIncidenceMatrix.set(placeNo, transitionNo, marking);//arcView.getWeightOfTokenClass(_id));
                                                 else _backwardsIncidenceMatrix.set(placeNo, transitionNo, 0);
@@ -398,6 +412,52 @@ public class Token extends Observable implements Serializable
                                     System.out.println("p:" + placeNo + ";t:"
                                                                + transitionNo + ";w:"
                                                                + inhibitorArcView.getWeight());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //对普通变迁使用的Fr的矩阵
+    public void createVirtualArcMatrix(ArrayList<VirtualArcView> ArcArray,ArrayList<TransitionView> transitionsArray, ArrayList<PlaceView> placesArray)
+    {
+        int placeSize = placesArray.size();
+        int transitionSize = transitionsArray.size();
+        _VirtualArcMatrix = new Matrix(placeSize, transitionSize);
+
+        for(int i=0;i<ArcArray.size();i++)
+        {
+            if(ArcArray.get(i) instanceof VirtualArcView)
+            {
+                PetriNetViewComponent pn = ArcArray.get(i).getSource();
+                if(pn != null)
+                {
+                    if(pn instanceof PlaceView)
+                    {
+                        PlaceView placeView = (PlaceView) pn;
+                        pn = ArcArray.get(i).getTarget();
+                        if(pn != null)
+                        {
+                            if(pn instanceof TransitionView)
+                            {
+                                TransitionView transitionView = (TransitionView) pn;
+                                int transitionNo = transitionsArray
+                                        .indexOf(transitionView);
+                                int placeNo = placesArray.indexOf(placeView);
+                                try
+                                {
+                                    _VirtualArcMatrix.set(placeNo, transitionNo,
+                                            1);
+                                }
+                                catch(Exception e)
+                                {
+                                    JOptionPane.showMessageDialog(null,
+                                            "Problema a VirtualArcMatrix");
+                                    System.out.println("p:" + placeNo + ";t:"
+                                            + transitionNo );
                                 }
                             }
                         }

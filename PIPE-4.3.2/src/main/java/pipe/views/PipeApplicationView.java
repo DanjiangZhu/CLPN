@@ -64,6 +64,18 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
 		_applicationController = null; 	
 		_applicationModel = null; 
 	}
+	//test
+    public PipeApplicationView(int i)
+    {
+        statusBar = null;
+        _moduleAndAnimationHistoryFrame = null;
+        _frameForPetriNetTabs = new JTabbedPane();
+        _petriNetTabs = null;
+        _animator = null;
+        _applicationController = null;
+        _applicationModel = null;
+    }
+
 	public PipeApplicationView(PipeApplicationController applicationController, PipeApplicationModel applicationModel)
     {
         ApplicationSettings.register(this);
@@ -166,7 +178,10 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
         addMenuItem(fileMenu, _applicationModel.importAction);
         // Export menu
         JMenu exportMenu = new JMenu("Export");
+
         exportMenu.setIcon(new ImageIcon(Thread.currentThread().getContextClassLoader().getResource(ApplicationSettings.getImagePath() + "Export.png")));
+
+
         addMenuItem(exportMenu, _applicationModel.exportPNGAction);
         addMenuItem(exportMenu, _applicationModel.exportPSAction);
         addMenuItem(exportMenu, _applicationModel.exportTNAction);
@@ -200,6 +215,8 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
                 {
                     JMenu exampleMenu = new JMenu("Examples");
                     exampleMenu.setIcon(new ImageIcon(Thread.currentThread().getContextClassLoader().getResource(ApplicationSettings.getImagePath() + "Example.png")));
+
+
                     int index = 0;
                     for(JarEntry net : nets)
                     {
@@ -259,6 +276,7 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
                 {
                     JMenu exampleMenu = new JMenu("Examples");
                     exampleMenu.setIcon(new ImageIcon(Thread.currentThread().getContextClassLoader().getResource(ApplicationSettings.getImagePath() + "Example.png")));
+
                     int k = 0;
                     for(File net : nets)
                     {
@@ -331,6 +349,7 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
 
         JMenu zoomMenu = new JMenu("Zoom");
         zoomMenu.setIcon(new ImageIcon(Thread.currentThread().getContextClassLoader().getResource(ApplicationSettings.getImagePath() + "Zoom.png")));
+
         addZoomMenuItems(zoomMenu);
 
         addMenuItem(viewMenu, _applicationModel.zoomOutAction);
@@ -362,7 +381,7 @@ public class PipeApplicationView extends JFrame implements ActionListener, Obser
 
         URL iconURL = Thread.currentThread().getContextClassLoader().getResource(ApplicationSettings.getImagePath()+ "About.png");
         if(iconURL != null)
-            aboutItem.setIcon(new ImageIcon(iconURL));
+            aboutItem.setIcon(new ImageIcon(Thread.currentThread().getContextClassLoader().getResource(ApplicationSettings.getImagePath()+ "About.png")));
 
         menuBar.add(fileMenu);
         menuBar.add(editMenu);

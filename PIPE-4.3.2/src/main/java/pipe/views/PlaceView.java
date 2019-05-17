@@ -7,6 +7,7 @@ import pipe.gui.Grid;
 import pipe.gui.ZoomController;
 import pipe.gui.widgets.EscapableDialog;
 import pipe.gui.widgets.PlaceEditorPanel;
+import pipe.views.viewComponents.NameLabel;
 import pipe.handlers.PlaceTransitionObjectHandler;
 import pipe.historyActions.HistoryItem;
 import pipe.historyActions.PlaceCapacity;
@@ -62,6 +63,11 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
 	private LinkedList<MarkingView> initBackUp;
 	private LinkedList<MarkingView> currentBackUp;
 
+	//CLPN中每个库所都代表了系统状态(sv=a)
+	private String sv;
+	private String sv_value;
+
+
     public PlaceView()
     {
         this(0, 0, "", "", 0, 0, new LinkedList<MarkingView>(), 0, 0, 0);
@@ -82,6 +88,8 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
     {
         //MODEL
         super(positionXInput,positionYInput,idInput,nameInput,nameOffsetXInput,nameOffsetYInput, new Place(idInput, nameInput));
+        _nameLabel = new NameLabel(idInput, _zoomPercentage, nameOffsetXInput, nameOffsetYInput);
+        createSv(nameInput);
         _initialMarkingView = Copier.mediumCopy(initialMarkingViewInput);
         _currentMarkingView = Copier.mediumCopy(initialMarkingViewInput);
         addObserver(_currentMarkingView); 
@@ -97,6 +105,7 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
         setCentre((int) _positionX, (int) _positionY);
 
     }
+
 
     private void addObserver(LinkedList<MarkingView> markingViews)
 	{
@@ -400,6 +409,74 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
         return new PlaceMarking(this, oldMarkingView, newMarkingView);
     }
 
+    public HistoryItem setCurrentMarking(LinkedList<MarkingView> currentMarkingViewInput,PetriNetView pn)
+    {
+        if(_initialMarkingView.size()==0){
+            _initialMarkingView=Copier.mediumCopy(_currentMarkingView);
+        }
+
+
+        int totalMarking = 0;
+        for(MarkingView inputtedMarkingView : currentMarkingViewInput)
+        {
+            totalMarking += inputtedMarkingView.getCurrentMarking();
+        }
+        if(capacity != 0 && totalMarking > capacity)
+        {
+            return new PlaceMarking(this, _currentMarkingView, _currentMarkingView);
+        }
+
+        LinkedList<MarkingView> oldMarkingView = Copier.mediumCopy(_currentMarkingView);
+
+        for(MarkingView m : _currentMarkingView)
+        {
+            int newMarkingPos = getMarkingListPos(m.getToken().getID(),
+                    currentMarkingViewInput);
+            if((newMarkingPos == -1)
+                    || (currentMarkingViewInput.get(newMarkingPos)
+                    .getCurrentMarking() == 0 && m.getCurrentMarking() != 0))
+            {
+                pn.unlockTokenClass(m.getToken().getID());
+            }
+        }
+        for(MarkingView m : currentMarkingViewInput)
+        {
+            int oldMarkingPos = getMarkingListPos(m.getToken().getID(),
+                    _currentMarkingView);
+            if((oldMarkingPos == -1 && m.getCurrentMarking() > 0)
+                    || (_currentMarkingView.get(oldMarkingPos).getCurrentMarking() == 0 && m
+                    .getCurrentMarking() != 0))
+            {
+               pn.lockTokenClass(m.getToken().getID());
+            }
+            // Now update the current marking if such a marking exists, otherwise create a new one
+            if(oldMarkingPos == -1)
+            {
+                m.addObserver(this);
+                _currentMarkingView.add(m);
+            }
+            else
+            {
+                _currentMarkingView.get(oldMarkingPos).setCurrentMarking(m.getCurrentMarking());
+            }
+        }
+        LinkedList<TokenView> tokenViews = pn.getTokenViews();
+        for(TokenView tc : tokenViews)
+        {
+            if(tc.isEnabled())
+            {
+                if(getMarkingListPos(tc.getID(), _currentMarkingView) == -1)
+                {
+                    MarkingView m = new MarkingView(tc, 0);
+                    m.addObserver(this);
+                    _currentMarkingView.add(m);
+                }
+            }
+        }
+        repaint();
+        LinkedList<MarkingView> newMarkingView = Copier.mediumCopy(_currentMarkingView);
+        return new PlaceMarking(this, oldMarkingView, newMarkingView);
+    }
     public HistoryItem setCapacity(int newCapacity)
     {
         int oldCapacity = capacity;
@@ -559,8 +636,8 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
     {
         if(_attributesVisible)
         {
-            _nameLabel.setText("\nk="
-                                       + (capacity > 0 ? capacity : "\u221E"));
+            //name中存储place所代表的条件
+            _nameLabel.setText("\n"+this.getname());
         }
         else
         {
@@ -593,8 +670,22 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
 		update();
 	}
 
+	private  void createSv(String name)
+    {
+        if(name.contains("=")) {
+            String[] temp = name.split("=");
+            if (temp.length > 1) {
+                sv = temp[0];
+                sv_value = temp[1];
+            }
+        }
+    }
 
-	public void update(Observable observable, Object obj)
+    public String getSv() {
+        return sv;
+    }
+
+    public void update(Observable observable, Object obj)
 	{
 		if ((observable instanceof PipeObservable) && (obj == null))
 		{
@@ -607,5 +698,7 @@ public class PlaceView extends ConnectableView implements Serializable, Observer
 			}
 		}
 	}
+
+
 }
 

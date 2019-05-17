@@ -446,7 +446,7 @@ public class PetriNetTab extends JLayeredPane implements Observer, Printable
             //假设LogicalTransition在开始时默认是瞬时变迁，后期是否是时间变迁在右键编辑中设置。
             p = adjustPoint(p, _petriNetTab.getZoom());
 
-            pn = new LogicalTransitionView((double) Grid.getModifiedX(p.x), (double) Grid.getModifiedY(p.y),"");
+            pn = new LogicalTransitionView((double) Grid.getModifiedX(p.x), (double) Grid.getModifiedY(p.y),"","",1.0,"");
             _model.addPetriNetObject(pn);
             _petriNetTab.addNewPetriNetObject(pn);
             return (ConnectableView) pn;
