@@ -26,6 +26,7 @@ import java.awt.*;
 import java.io.File;
 import java.io.Serializable;
 import java.util.*;
+import java.util.List;
 import java.util.Observable;
 
 
@@ -86,10 +87,32 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
 
     private TokenSetController _tokenSetController;
 
+    //时延数组
+    private double[] _initialDelayMatrix;
+    private double[] _currentDelayMatrix;
+    //用来判断一个变迁使能变化状态
+    private boolean[] preEnabledTransitions;
+
+    //用来表示system variable与库所关系的Map
+    private HashMap<String,ArrayList<Integer>> sv_place;
+    //用来表示system variable与变迁关系的Map
+    private HashMap<String,ArrayList<Integer>> sv_transition;
 
     public PetriNetView(String pnmlFileName) {
         _model = new PetriNet();
         _petriNetController = ApplicationSettings.getPetriNetController();
+        _model.registerObserver(this);
+        initializeMatrices();
+        PNMLTransformer transform = new PNMLTransformer();
+        File temp = new File(pnmlFileName);
+        _model.setPnmlName(temp.getName());
+        createFromPNML(transform.transformPNML(pnmlFileName));
+    }
+
+    //test
+    public PetriNetView(String pnmlFileName,int i) {
+        _model = new PetriNet();
+        //_petriNetController = ApplicationSettings.getPetriNetController();
         _model.registerObserver(this);
         initializeMatrices();
         PNMLTransformer transform = new PNMLTransformer();
@@ -218,6 +241,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         _virtualsMap = new Hashtable();
         _tokenSetController = new TokenSetController();
         _tokenSetController.addObserver(this);
+        preEnabledTransitions=null;
     }
 
     private void addPlace(PlaceView placeView) {
@@ -869,9 +893,11 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         boolean infiniteServer;
         int angle = 0;
         int priority = 1;
-        double weight = 1.0;
+        Double weight = 1.0;
         String formula="";
+        String actionName="";
         Boolean logical=false;
+        String graphTime="";
 
         String positionXTempStorage = element.getAttribute("positionX");
         String positionYTempStorage = element.getAttribute("positionY");
@@ -888,6 +914,10 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         String parameterTempStorage = element.getAttribute("parameter");
         String logicalTempStorage=element.getAttribute("logical");
         String logical_formulaTempStorage=element.getAttribute("logical_formula");
+        String actionTempName=element.getAttribute("actionName");
+        String weightTemp=element.getAttribute("weight");
+        String graphTimeTemp=element.getAttribute("graphTime");
+
 
         if (nameTimed.length() == 0) {
             timedTransition = false;
@@ -950,15 +980,30 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
             formula=logical_formulaTempStorage;
         }
 
+        if(actionTempName.length()>0)
+        {
+            actionName=actionTempName;
+        }
+
+        if(weightTemp.length()>0)
+        {
+            weight=Double.parseDouble(weightTemp);
+        }
+
+        if(graphTimeTemp.length()>0)
+        {
+            graphTime=graphTimeTemp;
+        }
+
         TransitionView transitionView;
         if(logical)
             transitionView=new LogicalTransitionView(positionXInput, positionYInput, idInput, nameInput, nameOffsetXInput,
                     nameOffsetYInput, timedTransition, infiniteServer, angle,
-                    new Transition(idInput, nameInput, rate, priority),formula);
+                    new Transition(idInput, nameInput, rate, priority),formula,actionName,weight,graphTime);
             else
          transitionView =
                 new TransitionView(positionXInput, positionYInput, idInput, nameInput, nameOffsetXInput,
-                        nameOffsetYInput, timedTransition, infiniteServer, angle,
+                        nameOffsetYInput, timedTransition, infiniteServer, angle,weight,graphTime,
                         new Transition(idInput, nameInput, rate, priority));
 
         if (parameterTempStorage.length() > 0) {
@@ -1102,6 +1147,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         for (TokenView tc : _tokenSetController.getTokenViews()) {
             tc.createIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
             tc.createInhibitionMatrix(_inhibitorViews, _transitionViews, _placeViews);
+            tc.createVirtualArcMatrix(_virtualViews, _transitionViews, _placeViews);
         }
         for(int i=0;i<_transitionViews.size();i++)
         {
@@ -1114,6 +1160,10 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         }
         createInitialMarkingVector();
         createCurrentMarkingVector();
+        createInitialDelayMatix();
+        createCurrentDelayMatix();
+        createsv_place();
+        createsv_transition();
         createCapacityVector();
     }
 
@@ -1137,6 +1187,51 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         _currentMarkingVector = new LinkedList[placeSize];
         for (int placeNo = 0; placeNo < placeSize; placeNo++) {
             _currentMarkingVector[placeNo] = _placeViews.get(placeNo).getCurrentMarkingView();
+        }
+    }
+
+    /**
+     * Creates initial Delay Matix from current Petri-Net
+     */
+    private void createInitialDelayMatix()
+    {
+        int transitionSize = _transitionViews.size();
+        _initialDelayMatrix = new double[transitionSize];
+        for(int transitionNo = 0; transitionNo < transitionSize; transitionNo++)
+        {//这里必须默认设置瞬时变迁的delay=-1，去读取petri网的那里看一看！
+            // System.out.println("初始化变迁的时延：" + _transitionViews.get(transitionNo).getDelay());
+            _initialDelayMatrix[transitionNo] = _transitionViews.get(transitionNo).getDelay();
+        }
+    }
+    public double[] get_initialDelayMatrix(){
+        createInitialDelayMatix();
+        return _initialDelayMatrix;
+    }
+    /**
+     * Creates current Delay Matix from current Petri-Net
+     */
+    private void createCurrentDelayMatix()
+    {
+        int transitionSize = _transitionViews.size();
+
+        _currentDelayMatrix = new double[transitionSize];
+        for(int transitionNo = 0; transitionNo < transitionSize; transitionNo++)
+        {
+            _currentDelayMatrix[transitionNo] = _transitionViews.get(transitionNo).getDelay();
+        }
+    }
+    public double[] get_currentDelayMatrix(){
+        createCurrentDelayMatix();
+        return _currentDelayMatrix;
+    }
+    public void storeCurrentDelay(double[] arr)
+    {
+        int transitionSize = _transitionViews.size();
+        _currentDelayMatrix = new double[transitionSize];
+        for(int transitionNo = 0; transitionNo < transitionSize; transitionNo++)
+        {
+            _currentDelayMatrix[transitionNo] = arr[transitionNo];
+            _transitionViews.get(transitionNo).setDelay(_currentDelayMatrix[transitionNo]);
         }
     }
 
@@ -1201,14 +1296,32 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         }
     }
 
+    public void restorePreviousMarking(PetriNetView pn) {
+        if (_markingVectorAnimationStorage != null) {
+            int placeSize = _placeViews.size();
+            for (int placeNo = 0; placeNo < placeSize; placeNo++) {
+                PlaceView placeView = _placeViews.get(placeNo);
+                if (placeView != null) {
+                    placeView.setCurrentMarking(_markingVectorAnimationStorage[placeNo],pn);
+                    setChanged();
+                    notifyObservers(placeView);
+                    setMatrixChanged();
+                }
+            }
+        }
+    }
+
     public void fireTransition(TransitionView transitionView) {
+        setEnabledTransitions();
+        //fire分两步，先减去变迁的消耗的token，得到preEnabledTransitions，在加上变 迁产生的token
         if (transitionView != null) {
             if (transitionView.isEnabled() && _placeViews != null) {
                 int transitionNo = _transitionViews.indexOf(transitionView);//得到发生变迁在变迁序列中的序号
                 Matrix VFA=null;
                 //VCA转为VFA
-                if(transitionView instanceof  LogicalTransitionView)
-                    VFA=GetVFA((LogicalTransitionView)transitionView);
+                if(transitionView instanceof  LogicalTransitionView) {
+                    VFA = GetVFA((LogicalTransitionView) transitionView);
+                }
                 createMatrixes();
                 for (int placeNo = 0; placeNo < _placeViews.size(); placeNo++) {
                     for (MarkingView markingView : _placeViews.get(placeNo).getCurrentMarkingView()) {
@@ -1220,19 +1333,74 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                                 _currentMarkingVector[placeNo].get(oldMarkingPositionInTheList).getCurrentMarking();
                         //  tokenView.createIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
                         int markingToBeAdded ;
-                        if(transitionView instanceof  LogicalTransitionView)
+                        if(transitionView instanceof  LogicalTransitionView) {
                             //计算用Matrixs为VFA的一列
-                            markingToBeAdded=tokenView.getIncidenceMatrix().get(placeNo, transitionNo)-VFA.get(placeNo,0);
-                        else{
-                            markingToBeAdded = tokenView.getIncidenceMatrix().get(placeNo, transitionNo);
+                            markingToBeAdded = -tokenView.getBackwardsIncidenceMatrix().get(placeNo, transitionNo) - VFA.get(placeNo, 0);
                         }
+                        else{
+                            markingToBeAdded = -tokenView.getBackwardsIncidenceMatrix().get(placeNo, transitionNo);
+                        }
+                        markingView.setCurrentMarking(oldMarking + markingToBeAdded);
+                    }
+                }
+                preEnabledTransitions= getTransitionEnabledStatusArray(this.getTransitionViews(), this.getCurrentMarkingVector(), true,
+                        this.getCapacityMatrix(), this.numberOfPlaces(), this.numberOfTransitions());
+                for (int placeNo = 0; placeNo < _placeViews.size(); placeNo++) {
+                    for (MarkingView markingView : _placeViews.get(placeNo).getCurrentMarkingView()) {
+                        TokenView tokenView = markingView.getToken();
+                        int oldMarkingPositionInTheList =
+                                positionInTheList(tokenView.getID(), _currentMarkingVector[placeNo]);
+                        int oldMarking =
+                                _currentMarkingVector[placeNo].get(oldMarkingPositionInTheList).getCurrentMarking();
+                        //  tokenView.createIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
+                        int markingToBeAdded ;
+
+                        markingToBeAdded = tokenView.getForwardsIncidenceMatrix().get(placeNo, transitionNo);
+
                         markingView.setCurrentMarking(oldMarking + markingToBeAdded);
                     }
                     _placeViews.get(placeNo).repaint();
                 }
             }
         }
-        setMatrixChanged();
+
+        //变迁发生、token发生后，计算时间的问题
+        double currentFiredTransitionDelay = transitionView.getDelay();
+        LinkedList<MarkingView>[ ] markings = getCurrentMarkingVector();
+
+        int len = this._currentDelayMatrix.length;//长度和变迁的数量相同
+        boolean[] result = new boolean[len];
+        double[] arr;
+        //判断是否有新使能的变迁，还有当前变迁的delay也需要赋予一个新值
+        result = areTransitionsEnabled(markings);//result要么全是瞬时变迁，要么全是非瞬时变迁
+        TransitionView tra;
+        int type;
+        for(int i=0;i<len;i++){
+            //若这个变迁是瞬时变迁，只发生token的变化，对其他变迁不发生影响，重新进行使能判断即可；
+            arr = get_currentDelayMatrix();//将arr放在里面，每一次都要让它更新
+            tra = _transitionViews.get(i);
+            if(!tra.isTimed())
+                continue;
+            System.out.println(getTransition(i).getName()+" "+result[i]+" "+preEnabledTransitions[i]+" ");
+            //若这个变迁不是瞬时变迁（说明不存在瞬时变迁，只有指数变迁和确定性变迁），需要刷新各使能变迁的时延值
+            // token发生变化后，应该讲变迁进行分类，持续使能的变迁减去当前变迁时间的值，不再进行新的赋值
+            //1、持续使能，时延减去当前实施时延
+            if(result[i] == true && preEnabledTransitions[i] ==true){
+                    arr[i] -= currentFiredTransitionDelay;
+            }
+            //2、新使能，重新产生时延
+            else if(result[i] == true && preEnabledTransitions[i] ==false){
+                    tra.setDelay();;
+                    arr[i]=tra.getDelay();
+            }
+            //3、新不使能
+            else if(result[i] == false && preEnabledTransitions[i] == true){
+                    arr[i] = 0;
+                    tra.setDelay(0);
+            }//4、持续不使能，无变化
+            storeCurrentDelay(arr);//把当前的时延矩阵重新存储起来
+        }
+    setMatrixChanged();
     }
 
     public TransitionView getRandomTransition() {
@@ -1243,10 +1411,13 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         // b) all are timed _transitions.
 
         ArrayList enabledTransitions = new ArrayList();
+        ArrayList<Double> ArrayOfEnabledTransitionDelay = new ArrayList<Double>();
         double rate = 0;
         for (TransitionView transitionView : _transitionViews) {
             if (transitionView.isEnabled()) {
                 enabledTransitions.add(transitionView);
+                ArrayOfEnabledTransitionDelay.add(transitionView.getDelay());
+
                 rate += transitionView.getRate();
             }
         }
@@ -1255,21 +1426,92 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         if (enabledTransitions.size() == 1) {
             return (TransitionView) enabledTransitions.get(0);
         }
+        //下面是指使能变迁的个数大于1的时候
+        //1、全是瞬时变迁
+        //随机选取
+        if(isAllImmTransition(_transitionViews)) {
+            double random = _model.getRandomNumber().nextDouble();
+            double x = 0;
+            for (Object enabledTransition : enabledTransitions) {
+                TransitionView t = (TransitionView) enabledTransition;
 
-        double random = _model.getRandomNumber().nextDouble();
-        double x = 0;
-        for (Object enabledTransition : enabledTransitions) {
-            TransitionView t = (TransitionView) enabledTransition;
-
-            x += t.getRate() / rate;
-
-            if (random < x) {
-                return t;
+                x += t.getRate() / rate;
+                if (random < x) {
+                    return t;
+                }
             }
         }
-
+        //2、不是瞬时变迁的情况下，选择 一个时延最短的变迁
+        else{
+            int index;
+            double value;
+            //对数组进行复制
+            Double[] a = (Double[])ArrayOfEnabledTransitionDelay.toArray(new Double[enabledTransitions.size()]);
+            //对时延数组进行排序，得到数组下标，返回最小时延所对应的那个变迁
+            Arrays.sort(a);
+            //找到合适的最小值
+            value = minValue(a);
+            //找到对应的下标，可能有多个，需要进行一个选择
+            index = findRandomIndex(_currentDelayMatrix,value);
+            if(index ==-1)
+                return null;
+            return this.getTransition(index);
+        }
         // no enabled transition found, so no transition can be fired
         return null;
+    }
+
+    //当有多个相同的时候，随机选择一个返回
+    private int findRandomIndex(double[] arr,double value){
+        int len = arr.length;
+        ArrayList<Integer> list = new ArrayList();
+        for(int i=0;i<len;i++){
+            if(arr[i] == value && _transitionViews.get(i).isEnabled()){
+                list.add(i);
+            }
+        }
+        int ll = list.size();
+        if(ll == 1)
+            return (int)list.get(0);
+        else if(ll > 1){
+            Random r = new Random();
+            int a = r.nextInt(ll);
+            return list.get(a);
+        }
+        else
+            return -1;
+    }
+
+    private double minValue(Double[] arr){
+        int len = arr.length;
+        for(int i=0;i<len;i++){
+            if(arr[i] == 0){
+                break;
+            }else//第一个不是-1的值就是最小时延
+                return arr[i];
+        }
+        return -1;
+    }
+
+    //判断是否全为瞬时变迁
+    private boolean isAllImmTransition(ArrayList<TransitionView> _transitionViews){
+        boolean flag = true;
+        int count = 0;
+        for(TransitionView transitionView : _transitionViews)
+        {
+            if(transitionView.isEnabled() && transitionView.isTimed()==false){
+                count++;//变迁使能而且是瞬时变迁
+            }
+            if(transitionView.isEnabled() && transitionView.isTimed()==true)
+            {//变迁使能，但不是瞬时变迁
+                flag =  false;
+                return flag;
+            }
+        }
+        if(count == 0){
+            flag = false;
+        }
+        return flag;
     }
 
     /* (non-Javadoc)
@@ -1444,6 +1686,13 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                             allTokenClassesEnabled = false;
                             break;
                         }
+                        //对于普通变迁Fr的效果,库所j到变迁i存在Fr，那么库所j的token必须都大于0才能使变迁ienable
+                        if (m.getToken().getVirtualMatrix().get(j, i) == 1
+                                && m.getCurrentMarking() == 0) {
+                            // 连接库所与普通变迁的Fr，若库所不为0则变迁不为enable
+                            allTokenClassesEnabled = false;
+                            break;
+                        }
                     }
                 }
                 // capacities
@@ -1499,6 +1748,139 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         return result;
     }
 
+    //取消了CA的条件限制，为了获取failure
+    public final boolean[] areTransitionsEnabled2(LinkedList<MarkingView>[] markings) {
+        createMatrixes();
+        int transitionCount = numberOfTransitions();
+        int placeCount = numberOfPlaces();
+        boolean[] result = new boolean[transitionCount];
+        boolean hasTimed = false;
+        boolean hasImmediate = false;
+
+        int maxPriority = 0;
+        for (int i = 0; i < transitionCount; i++) {
+            if (_transitionViews.get(i).isInfiniteServer()) {
+                if (getEnablingDegree(_transitionViews.get(i)) == 0) {
+                    result[i] = false;
+                    continue;
+                } else {
+                    result[i] = true;
+                    continue;
+                }
+            }
+            TransitionView[] transArray=this.getTransitionViews();
+            if(transArray[i] instanceof  LogicalTransitionView)
+            {
+                Matrix curmatrix = new Matrix(placeCount, 1);
+                for (int j = 0; j < placeCount; j++) {
+                    MarkingView temp = markings[j].get(0);
+                    curmatrix.set(j, 0, markings[j].get(0).getCurrentMarking());
+                }
+                //IsSame只要该变迁不破坏容量限制则为true
+                Boolean IsSame = true;
+                //记录符合的析取范式的列数
+                int posid = 0;
+                int markingToBeAdded=0;
+                int oldmarking=0;
+
+                //判断是否会破坏容量限制
+                Matrix VFA=GetVFA((LogicalTransitionView)transArray[i]);
+                for(int placeNo=0;placeNo<placeCount;placeNo++){
+                    markingToBeAdded= _placeViews.get(placeNo).getCurrentMarkingView().get(0).getToken().getIncidenceMatrix().get(placeNo, i)-VFA.get(placeNo,0);
+                    oldmarking=_placeViews.get(placeNo).getTotalMarking();
+                    if(oldmarking+markingToBeAdded>1||oldmarking+markingToBeAdded<0) IsSame=false;
+                }
+
+                result[i] = IsSame;
+                ((LogicalTransitionView)transArray[i]).setVCA_fire_colum(posid);
+            }
+            else{
+                result[i] = true; // inicialitzam a enabled
+                for (int j = 0; j < placeCount; j++) {
+                    boolean allTokenClassesEnabled = true;
+                    int totalMarkings = 0;
+                    int totalForwardIncidenceMarkings = 0;
+                    int totalBackwardIncidenceMarkings = 0;
+                    for (MarkingView m : markings[j]) {
+                        if (m.getToken().isEnabled()) {
+                            totalMarkings += m.getCurrentMarking();
+                            totalForwardIncidenceMarkings += (m.getToken()).getForwardsIncidenceMatrix().get(j, i);
+                            totalBackwardIncidenceMarkings += (m.getToken()).getBackwardsIncidenceMatrix().get(j, i);
+                            if ((m.getCurrentMarking() < (m.getToken()).getBackwardsIncidenceMatrix().get(j, i)) && (
+                                    m.getCurrentMarking() != -1)) {
+                                allTokenClassesEnabled = false;
+                                break;
+                            }
+                            // inhibitor arcs
+                            if (m.getToken().getInhibitionMatrix().get(j, i) > 0
+                                    && m.getCurrentMarking() >= m.getToken().getInhibitionMatrix().get(j, i)) {
+                                // an inhibitor arc prevents the firing of this
+                                // transition so
+                                // the transition is not enabled
+                                allTokenClassesEnabled = false;
+                                break;
+                            }
+                            //对于普通变迁Fr的效果,库所j到变迁i存在Fr，那么库所j的token必须都大于0才能使变迁ienable
+                            if (m.getToken().getVirtualMatrix().get(j, i) == 1
+                                    && m.getCurrentMarking() == 0) {
+                                // 连接库所与普通变迁的Fr，若库所不为0则变迁不为enable
+                                allTokenClassesEnabled = false;
+                                break;
+                            }
+                        }
+                    }
+                    // capacities
+                    if (allTokenClassesEnabled && (_capacityMatrix[j] > 0) && (
+                            totalMarkings + totalForwardIncidenceMarkings - totalBackwardIncidenceMarkings
+                                    > _capacityMatrix[j])) { // firing this transition would break a capacity
+                        // restriction so the transition is not enabled
+                        allTokenClassesEnabled = false;
+                    }
+
+
+                    if (!allTokenClassesEnabled) {
+                        result[i] = false;
+                        break;
+                    }
+                }
+
+                // we look for the highest priority of the enabled _transitions
+                if (result[i]) {
+                    TransitionView t = _transitionViews.get(i);
+                    if (t.isTimed()) {
+                        hasTimed = true;
+                    } else {
+                        hasImmediate = true;
+                        if (t.getPriority() > maxPriority) {
+                            maxPriority = t.getPriority();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Now make sure that if any of the enabled _transitions are immediate
+        // _transitions, only they can fire as this must then be a vanishing
+        // state.
+        // - disable the immediate _transitions with lower priority.
+        // - disable all timed _transitions if there is an immediate transition
+        // enabled.
+        for (int i = 0; i < transitionCount; i++) {
+            TransitionView t = _transitionViews.get(i);
+            if (!t.isTimed() && t.getPriority() < maxPriority) {
+                result[i] = false;
+            }
+            if (hasTimed && hasImmediate) {
+                if (t.isTimed()) {
+                    result[i] = false;
+                }
+            }
+
+        }
+
+        // print("areTransitionsEnabled: ",result);//debug
+        return result;
+    }
     // }
 
     /* (non-Javadoc)
@@ -1536,9 +1918,14 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         boolean[] enabledTransitions =
                 getTransitionEnabledStatusArray(this.getTransitionViews(), this.getCurrentMarkingVector(), false,
                         this.getCapacityMatrix(), this.numberOfPlaces(), this.numberOfTransitions());
-
+        conflictdetect(enabledTransitions);
+        contactdetect(enabledTransitions);
         for (int i = 0; i < enabledTransitions.length; i++) {
             TransitionView transitionView = _transitionViews.get(i);
+            if(enabledTransitions[i]){
+                convert_conflictdetect(transitionView,enabledTransitions);
+                convert_contactdetect(transitionView,enabledTransitions);
+            }
             if (enabledTransitions[i] != transitionView.isEnabled()) {
                 transitionView.setEnabled(enabledTransitions[i]);
                 setChanged();
@@ -1614,8 +2001,6 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                      oldmarking=_placeViews.get(placeNo).getTotalMarking();
                      if(oldmarking+markingToBeAdded>1) IsSame=false;
                  }
-
-
                  result[i]=IsSame;
              }
              else {
@@ -1628,6 +2013,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                     int[][] CMinus;
                     int[][] CPlus;
                     int[][] inhibition;
+                    int[][] virtual;
                     if (backwards) {
                         CMinus = m.getToken().getForwardsIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
                         CPlus = m.getToken().getBackwardsIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
@@ -1636,6 +2022,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                         CMinus = m.getToken().getBackwardsIncidenceMatrix(_arcViews, _transitionViews, _placeViews);
                     }
                     inhibition = m.getToken().getInhibitionMatrix(_inhibitorViews, _transitionViews, _placeViews);
+                    virtual=m.getToken().getVirtualMatrix(_virtualViews, _transitionViews, _placeViews);
 
                     if ((m.getCurrentMarking() < CMinus[j][i]) && (m.getCurrentMarking() != -1)) {
                         allTokenClassesEnabled = false;
@@ -1658,6 +2045,12 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
                         // transition
                         // so
                         // the transition is not enabled
+                        allTokenClassesEnabled = false;
+                        break;
+                    }
+                    //Fr的效果
+                    if(virtual[j][i]==1&&m.getCurrentMarking()==0)
+                    {
                         allTokenClassesEnabled = false;
                         break;
                     }
@@ -1895,6 +2288,16 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         for (int placeNo = 0; placeNo < placeSize; placeNo++) {
             _placeViews.get(placeNo).getCurrentMarkingView().getFirst().setCurrentMarking(is[placeNo]);
         }
+    }
+
+    public int[] getCurrentMarkingVectorNum() {
+        int placeSize = _placeViews.size();
+        int[] is=new int[placeSize];
+
+        for (int placeNo = 0; placeNo < placeSize; placeNo++) {
+            is[placeNo]=_placeViews.get(placeNo).getCurrentMarkingView().getFirst().getCurrentMarking();
+        }
+        return is;
     }
 
     /* (non-Javadoc)
@@ -2763,6 +3166,18 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         return temp;
     }
 
+    //判断库所与变迁之间的弧是否为FR
+    private Boolean IsPlace2TransitionFR(PlaceView pl,TransitionView tr) {
+        Boolean temp=false;
+        for(int i=0;i<_arcViews.size();i++){
+            ConnectableView source = _arcViews.get(i).getSource();
+            ConnectableView target = _arcViews.get(i).getTarget();
+
+            if(pl.equals(target)&&tr.equals(source))
+                temp=true;
+        }
+        return temp;
+    }
     //生成变迁的VFA
     private Matrix GetVFA(LogicalTransitionView tr) {
         Matrix temp_VCA = tr.getVCA();
@@ -2776,7 +3191,7 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         return  VFA;
     }
 
-    //判断库所与变迁之间的弧是否为FN(为生成可达图准备)
+    //判断库所与变迁之间的弧是否为FN(生成可达图时使用)
     public Boolean IsPlace2TransitionFN4Graph(int p,TransitionView tr) {
         Boolean temp=false;
         PlaceView pl=_placeViews.get(p);
@@ -2789,11 +3204,237 @@ public class PetriNetView extends Observable implements Cloneable, IObserver, Se
         }
         return temp;
     }
+
+
+    //判断某个库所是否为某个变迁的前驱
+    private  Boolean IsPlace2TransitionConnect(PlaceView pl,TransitionView tr)
+    {
+        Boolean temp=false;
+        for(int i=0;i<_virtualViews.size();i++){
+            ConnectableView source = _virtualViews.get(i).getSource();
+            ConnectableView target = _virtualViews.get(i).getTarget();
+
+            if( pl.equals(source)&&tr.equals(target))
+                temp=true;
+        }
+        for(int i=0;i<_arcViews.size();i++){
+            ConnectableView source = _arcViews.get(i).getSource();
+            ConnectableView target = _arcViews.get(i).getTarget();
+
+            if( pl.equals(source)&&tr.equals(target))
+                temp=true;
+        }
+
+        return temp;
+    }
+
+    //生成system variable与库所关系矩阵
+    private  void createsv_place()
+    {
+        sv_place=new HashMap<String, ArrayList<Integer>>();
+        ArrayList<String> sv=new ArrayList<String>();
+        for(int i=0;i<_placeViews.size();i++)
+        {
+            if(!sv.contains(_placeViews.get(i).getSv())) sv.add(_placeViews.get(i).getSv());
+        }
+
+        for(int i=0;i<sv.size();i++) {
+            ArrayList<Integer> temp=new ArrayList<Integer>();
+            for (int j = 0; j < _placeViews.size(); j++) {
+                if (_placeViews.get(j).getSv().equals(sv.get(i)))
+                    temp.add(j);
+            }
+            if(temp.size()>0) sv_place.put(sv.get(i),temp);
+        }
+    }
+
+    private void createsv_transition()
+    {
+        sv_transition=new HashMap<String, ArrayList<Integer>>();
+        Matrix svp=new Matrix(sv_place.size(),_placeViews.size());
+        Matrix pt=_initialMarkingVector[0].get(0).getToken().getForwardsIncidenceMatrix();
+        ArrayList<String> svs=new ArrayList<String>();
+        Iterator iter = sv_place.entrySet().iterator();
+        int i=0;
+        while (iter.hasNext()) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            Object key = entry.getKey();
+            svs.add((String)key);
+            ArrayList<Integer> val = (ArrayList<Integer>)entry.getValue();
+            for(int j=0;j<val.size();j++)
+            {
+                svp.set(i,val.get(j),1);
+            }
+            i++;
+        }
+        //这个Matrix不支持矩阵乘法,计算sv与变迁的关系矩阵
+        Matrix svt=new Matrix(sv_place.size(),_transitionViews.size());
+        for(i=0;i<sv_place.size();i++)
+        {
+            Matrix a=svp.getMatrix(i,i,0,_placeViews.size()-1);
+            for(int j=0;j<_transitionViews.size();j++)
+            {
+                Matrix b=pt.getMatrix(0,_placeViews.size()-1,j,j);
+                svt.set(i,j,a.vectorTimes(b)>0?1:0);
+            }
+        }
+        for(i=0 ;i<sv_place.size();i++)
+        {
+            ArrayList<Integer> temp=new ArrayList<Integer>();
+            for(int j=0;j<_transitionViews.size();j++)
+                if(svt.get(i,j)==1) temp.add(j);
+            sv_transition.put(svs.get(i),temp);
+        }
+        System.out.println("s");
+
+    }
+    //找出多个变迁的后继库所是否有相同的，冲撞
+    public HashMap<String, ArrayList<TransitionView>> contactdetect(boolean[] enable)
+    {
+        HashMap<String, ArrayList<TransitionView>> contact_tr=new HashMap<String, ArrayList<TransitionView>>();
+
+        ArrayList<Integer> indexs=new ArrayList<Integer>();
+        for(int i=0;i<enable.length;i++)
+            if(enable[i]) indexs.add(i);
+
+        Matrix forward=_currentMarkingVector[0].getFirst().getToken().getForwardsIncidenceMatrix();
+
+        for(int i=0;i<_placeViews.size();i++)
+        {
+            ArrayList<TransitionView> temp=new ArrayList<TransitionView>();
+            for(int j=0;j<indexs.size();j++){
+            if(forward.get(i,indexs.get(j))==1)
+            {
+                temp.add(_transitionViews.get(indexs.get(j)));
+            }           }
+            if(temp.size()>=2)
+                contact_tr.put(_placeViews.get(i).getId(),temp);
+        }
+      return  contact_tr;
+    }
+
+    //找出多个变迁的前驱库所是否有相同的,冲突
+    public HashMap<String, ArrayList<TransitionView>> conflictdetect(boolean[] enable)
+    {
+        HashMap<String, ArrayList<TransitionView>> conflict_tr=new HashMap<String, ArrayList<TransitionView>>();
+
+        Matrix backward=_currentMarkingVector[0].getFirst().getToken().getBackwardsIncidenceMatrix();
+
+        ArrayList<Integer> indexs=new ArrayList<Integer>();
+        for(int i=0;i<enable.length;i++) {
+            if (enable[i]) indexs.add(i);
+            if(_transitionViews.get(i) instanceof LogicalTransitionView)
+            {
+                Matrix temp4tr=GetVFA((LogicalTransitionView) _transitionViews.get(i));
+                for(int j=0;j<_placeViews.size();j++)
+                    backward.set(j,i,temp4tr.get(j,0));
+            }
+        }
+
+
+        for(int i=0;i<_placeViews.size();i++)
+        {
+            ArrayList<TransitionView> temp=new ArrayList<TransitionView>();
+            for(int j=0;j<indexs.size();j++){
+                if(backward.get(i,indexs.get(j))==1)
+                {
+                    temp.add(_transitionViews.get(indexs.get(j)));
+                }
+            }
+            if(temp.size()>=2)
+                conflict_tr.put(_placeViews.get(i).getId(),temp);
+        }
+        return  conflict_tr;
+    }
+
+    //隐冲突检测
+    public HashMap<String,ArrayList<TransitionView>> convert_conflictdetect(TransitionView t1,boolean[] enable)
+    {
+
+        int index1=0;
+
+        Matrix forward=_currentMarkingVector[0].getFirst().getToken().getForwardsIncidenceMatrix();
+        ArrayList<String> sv4t1=new ArrayList<String>();
+        index1=_transitionViews.indexOf(t1);
+
+        //获得该变迁的后继库所的所有sv
+        for(int i=0;i<_placeViews.size();i++)
+        {
+            if(forward.get(i,index1)==1&&!sv4t1.contains(_placeViews.get(i).getSv()))
+                sv4t1.add(_placeViews.get(i).getSv());
+        }
+
+        //获得该变迁的后继库所的所有sv，代表相同sv的库所
+        HashMap<String,ArrayList<Integer>> p4sv=new HashMap<String,ArrayList<Integer>>();
+        for(int i=0;i<sv4t1.size();i++)
+        {
+            ArrayList<Integer> temp=sv_place.get(sv4t1.get(i));
+            if(temp.size()>0) p4sv.put(sv4t1.get(i),temp);
+        }
+
+
+        HashMap<String,ArrayList<TransitionView>> res=new HashMap<String,ArrayList<TransitionView>>();
+        //查找每种sv中的库所是否为enable的变迁的前驱
+        for(String sv:p4sv.keySet()) {
+            ArrayList<TransitionView> temp=new ArrayList<TransitionView>();
+            for(int j=0;j<p4sv.get(sv).size();j++) {
+                for (int k = 0; k < enable.length; k++)
+                    if (enable[k] && !_transitionViews.get(k).equals(t1) && IsPlace2TransitionConnect(_placeViews.get(p4sv.get(sv).get(j)), _transitionViews.get(k)))
+                      if(!temp.contains(_transitionViews.get(k)))
+                          temp.add(_transitionViews.get(k));
+            }
+         if(temp.size()>0)   res.put(sv,temp);
+        }
+
+        return  res;
+    }
+
+    //隐冲撞检测
+    public HashMap<String,ArrayList<TransitionView>>  convert_contactdetect(TransitionView t1,boolean[] enable)
+    {
+        int index1=0;
+
+        Matrix forward=_currentMarkingVector[0].getFirst().getToken().getForwardsIncidenceMatrix();
+        ArrayList<String> sv4t1=new ArrayList<String>();
+        index1=_transitionViews.indexOf(t1);
+
+        //获得该变迁的后继库所的所有sv
+        for(int i=0;i<_placeViews.size();i++)
+        {
+            if(forward.get(i,index1)==1&&!sv4t1.contains(_placeViews.get(i).getSv()))
+                sv4t1.add(_placeViews.get(i).getSv());
+        }
+
+        //获得该变迁的后继库所的所有sv，代表相同sv的库所
+        HashMap<String,ArrayList<Integer>> p4sv=new HashMap<String,ArrayList<Integer>>();
+        for(int i=0;i<sv4t1.size();i++)
+        {
+            ArrayList<Integer> temp=sv_place.get(sv4t1.get(i));
+            if(temp.size()>0) p4sv.put(sv4t1.get(i),temp);
+        }
+
+
+        HashMap<String,ArrayList<TransitionView>> res=new HashMap<String,ArrayList<TransitionView>>();
+        //查找每种sv中的库所是否与一个enable的变迁相连
+        for(String sv:p4sv.keySet()) {
+            ArrayList<TransitionView> temp=new ArrayList<TransitionView>();
+            for(int j=0;j<p4sv.get(sv).size();j++) {
+                for (int k = 0; k < enable.length; k++)
+                    if (enable[k] && !_transitionViews.get(k).equals(t1) && IsPlace2TransitionFR(_placeViews.get(p4sv.get(sv).get(j)), _transitionViews.get(k)))
+                        if(!temp.contains(_transitionViews.get(k)))  temp.add(_transitionViews.get(k));
+            }
+            if(temp.size()>0)   res.put(sv,temp);
+        }
+
+        return  res;
+    }
+
     //@Override
     public void update(Observable arg0, Object arg1) {
         if ((arg0.equals(_tokenSetController)) && (arg1 instanceof TokenView)) {
             updatePlaceViewsWithActiveToken((TokenView) arg1);
         }
     }
+
 
 }

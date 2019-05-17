@@ -115,7 +115,9 @@ public class Expander
             boolean infServer = transitionView.isInfiniteServer();
             int angleInput = transitionView.getAngle();
             int priority = transitionView.getPriority();
-            TransitionView newTransitionView = new TransitionView(transPositionXInput, transPositionYInput, transIdInput, transIdInput, transNameOffsetXInput, transNameOffsetYInput, timedTransition, infServer, angleInput, new Transition(transIdInput, transIdInput,functionalRate, priority));
+            Double trweight=transitionView.get_weight();
+            String trgraphTime=transitionView.getGraphTime();
+            TransitionView newTransitionView = new TransitionView(transPositionXInput, transPositionYInput, transIdInput, transIdInput, transNameOffsetXInput, transNameOffsetYInput, timedTransition, infServer, angleInput,trweight,trgraphTime, new Transition(transIdInput, transIdInput,functionalRate, priority));
             _newTransitionViews.add(newTransitionView);
             analyseArcs(transitionView, newTransitionView, transitionView.outboundArcs());
             analyseArcs(transitionView, newTransitionView, transitionView.inboundArcs());

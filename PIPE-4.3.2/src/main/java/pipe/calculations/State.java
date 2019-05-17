@@ -7,6 +7,7 @@ import java.util.LinkedList;
 
 import pipe.gui.ApplicationSettings;
 import pipe.views.MarkingView;
+import pipe.views.PetriNetView;
 
 
 /**
@@ -135,5 +136,13 @@ public LinkedList<MarkingView>[] getPlaceMarking(){
 		return placeMarking;
 	}
 }
+
+public LinkedList<MarkingView>[] getPlaceMarking(PetriNetView pn){
+      if(placeMarking==null){
+         return pn.getCurrentMarkingVector();
+      }else{
+         return placeMarking;
+      }
+   }
    
 }

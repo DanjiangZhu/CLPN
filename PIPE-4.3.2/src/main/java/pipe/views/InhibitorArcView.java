@@ -144,7 +144,7 @@ public class InhibitorArcView extends ArcView implements Serializable
       } else{
          g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
       }
-     
+
       g2.setStroke(new BasicStroke(0.01f * _zoomPercentage));
       g2.draw(myPath);
       

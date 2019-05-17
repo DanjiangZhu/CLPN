@@ -13,9 +13,8 @@ import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 
 
 /**
@@ -59,15 +58,24 @@ public class PNMLTransformer {
 	{
 		File outputObjectArrayListFile = null;
 	      Document document = null;
-	      
-	
+
 	      try {
 	         // Create Transformer with XSL Source File
 	         StreamSource xsltSource = new StreamSource(
 	                 Thread.currentThread().getContextClassLoader().getResourceAsStream(
-	                 "xslt" + System.getProperty("file.separator")
-	                 + "GenerateObjectList.xsl"));
+	                 "xslt/GenerateObjectList.xsl"));
 	         Transformer transformer = TransformerFactory.newInstance().newTransformer(xsltSource);
+
+//	         URL ip=Thread.currentThread().getContextClassLoader().getResource(  "xslt" + System.getProperty("file.separator")
+//                     + "GenerateObjectList.xsl");
+//	         try
+//             {
+//                 FileOutputStream fos=new FileOutputStream(new File("E:\\2.txt"));
+//                 fos.write(ip.toString().getBytes());
+//                 fos.close();
+//             }
+//             catch (Exception e)
+//             {}
 	         
 	         // TRY TO DO ALL IN MEMORT TO REDUCE READ-WRITE DELAYS
 	         

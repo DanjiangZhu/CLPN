@@ -25,6 +25,7 @@ public abstract class PetriNetViewComponent extends JComponent implements Zoomab
     double _locationX;
     double _locationY;
     protected String _id;
+    public String _name;
     public NameLabel _nameLabel;
     protected boolean _selected;
     boolean _selectable;
@@ -57,12 +58,18 @@ public abstract class PetriNetViewComponent extends JComponent implements Zoomab
         _deleted = false;
         _markedAsDeleted = false;
         _zoomPercentage = 100;
+        _name=name;
         _nameLabel = new NameLabel(name, _zoomPercentage, nameOffsetX, nameOffsetY);
     }
 
     void setNameLabelName(String name)
     {
         _nameLabel.setName(name);
+    }
+
+    public String getname()
+    {
+        return _name;
     }
 
     protected void addZoomController(final ZoomController zoomControl2)

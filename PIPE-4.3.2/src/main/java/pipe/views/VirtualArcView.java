@@ -135,7 +135,11 @@ public class VirtualArcView extends ArcView implements Serializable {
             g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
         }
 
-        g2.setStroke(new BasicStroke(0.01f * _zoomPercentage));
+        Stroke dash = new BasicStroke(0.01f * _zoomPercentage, BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_ROUND, 3.5f, new float[] { 5, 5, },
+                0f);
+
+        g2.setStroke(dash);
         g2.draw(myPath);
 
         g2.translate(myPath.getPoint(myPath.getEndIndex()).getX(),
@@ -145,17 +149,23 @@ public class VirtualArcView extends ArcView implements Serializable {
         g2.setColor(Color.WHITE);
 
         AffineTransform reset = g2.getTransform();
-        g2.transform(ZoomController.getTransform(_zoomPercentage));
+//        g2.transform(ZoomController.getTransform(_zoomPercentage));
+//
+//        g2.setStroke(new BasicStroke(8f));
+//        g2.fillOval(OVAL_X, OVAL_Y, OVAL_WIDTH, OVAL_HEIGHT);
 
-        g2.setStroke(new BasicStroke(8f));
-        g2.fillOval(OVAL_X, OVAL_Y, OVAL_WIDTH, OVAL_HEIGHT);
+        g2.transform(ZoomController.getTransform(_zoomPercentage));
+        g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
 
         if (_selected && !_ignoreSelection){
             g2.setPaint(Constants.SELECTION_LINE_COLOUR);
         } else{
             g2.setPaint(Constants.ELEMENT_LINE_COLOUR);
         }
-        g2.drawOval(OVAL_X, OVAL_Y, OVAL_WIDTH, OVAL_HEIGHT);
+
+//        g2.drawOval(OVAL_X, OVAL_Y, OVAL_WIDTH, OVAL_HEIGHT);
+        g2.setStroke(new BasicStroke(0.8f));
+        g2.fillPolygon(new Polygon(new int[] { 0, 5, 0, -5 },new int[] { 0, -10, -7, -10 }, 4));
 
         g2.setTransform(reset);
     }

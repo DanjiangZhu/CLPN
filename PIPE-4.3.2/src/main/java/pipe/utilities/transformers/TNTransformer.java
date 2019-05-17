@@ -455,7 +455,7 @@ public class TNTransformer {
 			System.out.println("SAXException thrown in loadPNML(String filename) : PetriNet Class : models Package");
 			e.printStackTrace(System.err);
 		} catch (TransformerException e) {
-			System.out.println("TransformerException thrown in loadPNML(String filename) : PetriNet Class : models Package");
+			System.out.println("(String filename) : PetriNet Class : models Package");
 			e.printStackTrace(System.err);
 		} catch (ParserConfigurationException e) {
 			System.out.println("ParserConfigurationException thrown in loadPNML(String filename) : PetriNet Class : models Package");
