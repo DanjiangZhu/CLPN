@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1"?><pntools id="Net-One" type="P/T net">
+<token id="Default" enabled="true" red="0" green="0" blue="0"/>
+<token id="red" enabled="true" red="255" green="0" blue="0"/>
+<place initialMarking="Default,1,red,1" markingOffsetX="0.0" markingOffsetY="0.0" capacity="0" parameter="" name="P0" nameOffsetX="-5.0" nameOffsetY="35.0" id="P0" positionX="390.0" positionY="75.0"/>
+<place initialMarking="Default,0,red,0" markingOffsetX="0.0" markingOffsetY="0.0" capacity="0" parameter="" name="P1" nameOffsetX="-5.0" nameOffsetY="35.0" id="P1" positionX="390.0" positionY="300.0"/>
+<transition rate="1.0" timed="false" angle="0" infiniteServer="false" priority="1" weight="" parameter="" name="T0" nameOffsetX="-5.0" nameOffsetY="35.0" id="T0" positionX="390.0" positionY="180.0"/>
+<arc source="P0" target="T0" inscription="Default,1,red,2" inscriptionOffsetX="" inscriptionOffsetY="" tagged="false" id="P0 to T0" positionX="" positionY="">
+<arcpath x="402" y="101" arcPointType="false"/>
+<arcpath x="402" y="177" arcPointType="false"/>
+<type type="normal"/>
+</arc>
+<arc source="T0" target="P1" inscription="Default,1,red,2" inscriptionOffsetX="" inscriptionOffsetY="" tagged="false" id="T0 to P1" positionX="" positionY="">
+<arcpath x="402" y="207" arcPointType="false"/>
+<arcpath x="402" y="297" arcPointType="false"/>
+<type type="normal"/>
+</arc>
+</pntools>
